@@ -8,6 +8,12 @@
     },
     {
       "path": "./backend"
+    },
+    {
+      "path": "./libs/redis"
+    },
+    {
+      "path": "./libs/auth"
     }
   ]
 }
