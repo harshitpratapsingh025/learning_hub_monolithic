@@ -6,7 +6,6 @@ import { RolesModule } from './roles/roles.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { mongoConfig } from './config';
 import { ConfigModule } from '@nestjs/config';
-import { ParmissionsModule } from './parmissions/parmissions.module';
 import { PermissionsModule } from './permissions/permissions.module';
 
 @Module({
@@ -17,7 +16,6 @@ import { PermissionsModule } from './permissions/permissions.module';
     }),
     UsersModule,
     RolesModule,
-    ParmissionsModule,
     PermissionsModule,
   ],
   controllers: [AppController],

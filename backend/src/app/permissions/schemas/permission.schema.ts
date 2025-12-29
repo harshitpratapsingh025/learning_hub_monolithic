@@ -3,20 +3,26 @@ import { Document } from 'mongoose';
 import { MongoSerialized } from '../../common';
 
 @Schema({ timestamps: true })
-export class Role extends Document {
+export class Permission extends Document {
   @Prop({ required: true, trim: true, index: true })
   name!: string;
+
+  @Prop({ required: true, trim: true })
+  resource!: string;
+
+  @Prop({ required: true, trim: true })
+  action!: string;
 
   @Prop({ trim: true, nullable: true })
   description?: string;
 
-  @Prop({ name: 'is_active', default: true })
+  @Prop({ default: true })
   isActive!: boolean;
 }
 
-export const RoleSchema = SchemaFactory.createForClass(Role);
+export const PermissionSchema = SchemaFactory.createForClass(Permission);
 
-RoleSchema.set('toJSON', {
+PermissionSchema.set('toJSON', {
   transform: (_doc, ret: MongoSerialized) => {
     ret.id = ret._id?.toString();
     delete ret._id;

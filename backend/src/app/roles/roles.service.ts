@@ -12,7 +12,7 @@ export class RolesService {
   ) {}
 
   async findAll() {
-    return this.roleModel.find({ isActive: true }).lean();
+    return this.roleModel.find({ isActive: true });
   }
 
   async create(role: CreateRoleDto) {
