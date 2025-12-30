@@ -10,6 +10,7 @@ import { PermissionsModule } from './permissions/permissions.module';
 import { UserRolesModule } from './user-roles/user-roles.module';
 import { AuthModule } from './auth/auth.module';
 import { validationSchema } from './config/validation.schema';
+import { ContentModule } from './content/content.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -31,6 +32,7 @@ import configuration from './config/configuration';
     PermissionsModule,
     UserRolesModule,
     AuthModule,
+    ContentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
