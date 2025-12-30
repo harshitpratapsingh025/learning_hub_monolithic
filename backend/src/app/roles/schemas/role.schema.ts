@@ -1,23 +1,37 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
+import { Transform } from 'class-transformer';
 import { MongoSerialized } from '../../common';
 
-@Schema({ timestamps: true })
-export class Role extends Document {
-  @Prop({ required: true, trim: true, index: true })
+export type RoleDocument = Role & Document;
+
+@Schema({ timestamps: true, collection: 'roles' })
+export class Role {
+  @Transform(({ value }) => value.toString())
+  _id!: Types.ObjectId;
+
+  @Prop({ required: true, unique: true, index: true })
   name!: string;
 
-  @Prop({ trim: true, nullable: true })
+  @Prop()
   description?: string;
 
-  @Prop({ name: 'is_active', default: true })
+  @Prop({ default: true })
   isActive!: boolean;
+
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Permission' }], default: [] })
+  permissions!: Types.ObjectId[];
 }
 
 export const RoleSchema = SchemaFactory.createForClass(Role);
 
+RoleSchema.virtual('id').get(function () {
+  return this._id.toString();
+});
+
 RoleSchema.set('toJSON', {
-  transform: (_doc, ret: MongoSerialized) => {
+  virtuals: true,
+  transform: (doc, ret: MongoSerialized) => {
     ret.id = ret._id?.toString();
     delete ret._id;
     delete ret.__v;

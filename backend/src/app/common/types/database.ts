@@ -4,4 +4,5 @@ export interface MongoSerialized {
   _id?: Types.ObjectId;
   __v?: number;
   id?: string;
+  passwordHash?: string
 }

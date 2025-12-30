@@ -1,35 +1,59 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
+import { Exclude, Transform } from 'class-transformer';
+import { MongoSerialized } from '../../common';
 
-export enum UserRole {
-  USER = 'USER',
-  ADMIN = 'ADMIN',
-}
+export type UserDocument = User & Document;
 
-@Schema({ timestamps: true })
-export class User extends Document {
-  @Prop({ required: true, trim: true })
-  name!: string;
+@Schema({ timestamps: true, collection: 'users' })
+export class User {
+  @Transform(({ value }) => value.toString())
+  _id!: Types.ObjectId;
 
-  @Prop({
-    required: true,
-    unique: true,
-    index: true,
-    lowercase: true,
-  })
+  @Prop({ required: true })
+  fullName!: string;
+
+  @Prop({ required: true, unique: true, index: true })
   email!: string;
 
-  @Prop({ required: true, select: false })
-  password!: string;
+  @Prop({ unique: true, sparse: true })
+  phone?: string;
 
-  @Prop({ enum: UserRole, default: UserRole.USER })
-  role!: UserRole;
+  @Prop({ required: true })
+  @Exclude()
+  passwordHash!: string;
+
+  @Prop()
+  image?: string;
+
+  @Prop({ default: false })
+  isVerified!: boolean;
 
   @Prop({ default: true })
-  isActive?: boolean;
+  isActive!: boolean;
 
-  @Prop({ default: null })
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Role' }], default: [] })
+  roles!: Types.ObjectId[];
+
+  @Prop({ type: Date, default: null })
   deletedAt?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+// Virtual for ID
+UserSchema.virtual('id').get(function () {
+  return this._id.toString();
+});
+
+// Ensure virtuals are included
+UserSchema.set('toJSON', {
+  virtuals: true,
+  transform: (doc, ret: MongoSerialized) => {
+    ret.id = ret._id?.toString();
+    delete ret._id;
+    delete ret.__v;
+    delete ret.passwordHash;
+    return ret;
+  },
+});

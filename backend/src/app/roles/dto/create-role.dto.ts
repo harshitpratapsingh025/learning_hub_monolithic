@@ -1,22 +1,19 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsString } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsMongoId } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateRoleDto {
-  @ApiProperty({
-    example: 'Admin',
-  })
+  @ApiProperty({ example: 'moderator' })
   @IsString()
   name!: string;
 
-  @ApiProperty({
-    example: 'Admin with all the access',
-  })
+  @ApiPropertyOptional({ example: 'Can moderate content' })
+  @IsOptional()
   @IsString()
   description?: string;
 
-  @ApiProperty({
-    example: true,
-  })
-  @IsBoolean()
-  isActive!: boolean;
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsMongoId({ each: true })
+  permissionIds?: string[];
 }
