@@ -9,10 +9,20 @@ import { ConfigModule } from '@nestjs/config';
 import { PermissionsModule } from './permissions/permissions.module';
 import { UserRolesModule } from './user-roles/user-roles.module';
 import { AuthModule } from './auth/auth.module';
+import { validationSchema } from './config/validation.schema';
+import configuration from './config/configuration';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validationSchema: validationSchema,
+      load: [configuration],
+      validationOptions: {
+        abortEarly: true, // stop at first error
+      },
+      envFilePath: `.env`,
+    }),
     MongooseModule.forRootAsync({
       useFactory: mongoConfig,
     }),

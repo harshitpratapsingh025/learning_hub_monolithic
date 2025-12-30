@@ -23,9 +23,9 @@ import { UserRole, UserRoleSchema } from '../user-roles/schemas';
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get('jwt.secret'),
+        secret: configService.get('JWT_SECRET') || 'your-super-secret-key-change-in-production',
         signOptions: {
-          expiresIn: configService.get('jwt.accessTokenExpiry'),
+          expiresIn: configService.get('JWT_ACCESS_EXPIRY') || '30m',
         },
       }),
     }),

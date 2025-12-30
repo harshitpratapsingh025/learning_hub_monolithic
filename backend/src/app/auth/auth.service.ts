@@ -112,7 +112,7 @@ export class AuthService {
   async refreshToken(refreshToken: string) {
     try {
       const payload = this.jwtService.verify(refreshToken, {
-        secret: this.configService.get('jwt.secret'),
+        secret: this.configService.get('JWT_SECRET'),
       });
 
       if (payload.type !== 'refresh') {
@@ -200,16 +200,16 @@ export class AuthService {
     const accessToken = this.jwtService.sign(
       { ...payload, type: 'access' },
       {
-        secret: this.configService.get('jwt.secret'),
-        expiresIn: this.configService.get('jwt.accessTokenExpiry'),
+        secret: this.configService.get('JWT_SECRET'),
+        expiresIn: this.configService.get('JWT_ACCESS_EXPIRY'),
       },
     );
 
     const refreshToken = this.jwtService.sign(
       { sub: user.id || user._id.toString(), type: 'refresh' },
       {
-        secret: this.configService.get('jwt.secret'),
-        expiresIn: this.configService.get('jwt.refreshTokenExpiry'),
+        secret: this.configService.get('JWT_SECRET'),
+        expiresIn: this.configService.get('JWT_REFRESH_EXPIRY'),
       },
     );
 

@@ -1,36 +1,78 @@
 import {
-  Body,
   Controller,
-  Delete,
   Get,
-  Param,
-  Patch,
   Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { PermissionsService } from './permissions.service';
-import { CreatePermissionDto, UpdatePermissionDto } from './dto';
-
+import { QueryPermissionsDto } from './dto/query-permissions.dto';
+import { CreatePermissionDto, UpdatePermissionDto,  } from './dto';
+import { Roles } from '../common/decorators/roles.decorator';
+@ApiTags('Permissions')
+@ApiBearerAuth()
 @Controller('permissions')
 export class PermissionsController {
-  constructor(private readonly permissionService: PermissionsService) {}
-
-  @Get()
-  getAllPermissions() {
-    return this.permissionService.findAll();
-  }
+  constructor(private readonly permissionsService: PermissionsService) {}
 
   @Post()
-  createNewRole(@Body() newRole: CreatePermissionDto) {
-    return this.permissionService.create(newRole);
+  @Roles('admin')
+  @ApiOperation({ summary: 'Create new permission' })
+  @ApiResponse({ status: 201, description: 'Permission created successfully' })
+  async create(@Body() createPermissionDto: CreatePermissionDto) {
+    return this.permissionsService.create(createPermissionDto);
   }
 
-  @Patch(':id')
-  updateRole(@Param('id') id: string, @Body() role: UpdatePermissionDto) {
-    return this.permissionService.update(id, role);
+  @Get()
+  @ApiOperation({ summary: 'Get all permissions' })
+  async findAll(@Query() queryDto: QueryPermissionsDto) {
+    return this.permissionsService.findAll(queryDto);
+  }
+
+  @Get('resources')
+  @ApiOperation({ summary: 'Get all resources' })
+  async getResources() {
+    return this.permissionsService.getResources();
+  }
+
+  @Get('actions')
+  @ApiOperation({ summary: 'Get all actions' })
+  async getActions() {
+    return this.permissionsService.getActions();
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get permission by ID' })
+  async findOne(@Param('id') id: string) {
+    return this.permissionsService.findOne(id);
+  }
+
+  @Put(':id')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Update permission' })
+  async update(
+    @Param('id') id: string,
+    @Body() updatePermissionDto: UpdatePermissionDto
+  ) {
+    return this.permissionsService.update(id, updatePermissionDto);
   }
 
   @Delete(':id')
-  deleteRole(@Param('id') id: string) {
-    return this.permissionService.delete(id);
+  @Roles('admin')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete permission' })
+  async remove(@Param('id') id: string) {
+    await this.permissionsService.remove(id);
   }
 }

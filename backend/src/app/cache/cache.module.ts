@@ -14,6 +14,7 @@ import { CacheService } from './cache.service';
           host: configService.get('redis.host'),
           port: configService.get('redis.port'),
           password: configService.get('redis.password'),
+          username: configService.get('redis.username'),
           ttl: configService.get('redis.ttl') * 1000,
         }),
       }),

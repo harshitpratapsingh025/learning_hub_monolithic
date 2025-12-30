@@ -55,6 +55,7 @@
     "@types/bcrypt": "^6.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "20.19.9",
+    "@types/passport-jwt": "^4.0.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.2.0",

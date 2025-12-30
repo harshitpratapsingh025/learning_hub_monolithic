@@ -43,10 +43,16 @@ export class CacheService {
 
   async deletePattern(pattern: string): Promise<void> {
     try {
-      const keys = await this.cacheManager.store.keys(pattern);
-      if (keys.length > 0) {
-        await Promise.all(keys.map((key: string) => this.cacheManager.del(key)));
-        this.logger.debug(`Cache pattern deleted: ${pattern} (${keys.length} keys)`);
+      // Check if store has keys method (Redis)
+      const store = (this.cacheManager as any).store;
+      if (store && typeof store.keys === 'function') {
+        const keys = await store.keys(pattern);
+        if (keys.length > 0) {
+          await Promise.all(keys.map((key: string) => this.cacheManager.del(key)));
+          this.logger.debug(`Cache pattern deleted: ${pattern} (${keys.length} keys)`);
+        }
+      } else {
+        this.logger.debug(`Pattern deletion not supported for current cache store: ${pattern}`);
       }
     } catch (error) {
       this.logger.error(`Cache delete pattern error for ${pattern}:`, error);
@@ -55,7 +61,7 @@ export class CacheService {
 
   async reset(): Promise<void> {
     try {
-      await this.cacheManager.reset();
+      await (this.cacheManager as any).reset();
       this.logger.debug('Cache reset');
     } catch (error) {
       this.logger.error('Cache reset error:', error);

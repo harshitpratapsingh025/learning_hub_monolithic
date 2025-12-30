@@ -5,6 +5,7 @@ import { UsersService } from './users.service';
 import { User, UserSchema } from './schemas/user.schema';
 import { Role, RoleSchema } from '../roles/schemas';
 import { UserRole, UserRoleSchema } from '../user-roles/schemas';
+import { CacheModule } from '../cache/cache.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { UserRole, UserRoleSchema } from '../user-roles/schemas';
       { name: Role.name, schema: RoleSchema },
       { name: UserRole.name, schema: UserRoleSchema },
     ]),
+    CacheModule,
   ],
   controllers: [UsersController],
   providers: [UsersService],
