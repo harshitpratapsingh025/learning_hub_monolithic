@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
@@ -16,6 +17,8 @@ import configuration from './config/configuration';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
+import { AllExceptionsFilter } from './common';
+import { LoggingInterceptor } from './common/interceptors';
 
 @Module({
   imports: [
@@ -31,6 +34,12 @@ import { PermissionsGuard } from './common/guards/permissions.guard';
     MongooseModule.forRootAsync({
       useFactory: mongoConfig,
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // 1 minute
+        limit: 100, // 100 requests per minute
+      },
+    ]),
     UsersModule,
     RolesModule,
     PermissionsModule,
@@ -52,6 +61,17 @@ import { PermissionsGuard } from './common/guards/permissions.guard';
     {
       provide: APP_GUARD,
       useClass: PermissionsGuard,
+    },
+     // Global Filters
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
+
+    // Global Interceptors
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
     },
   ],
 })
