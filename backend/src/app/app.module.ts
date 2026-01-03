@@ -22,6 +22,7 @@ import {
   AllExceptionsFilter,
   LoggingInterceptor,
 } from './common';
+import { TestsModule } from './modules/tests';
 import configuration from './config/configuration';
 
 @Module({
@@ -50,6 +51,7 @@ import configuration from './config/configuration';
     UserRolesModule,
     AuthModule,
     ContentModule,
+    TestsModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { Transform } from 'class-transformer';
-import { MongoSerialized } from '../../common';
+import { MongoSerialized } from '../../../common';
 
 export type RoleDocument = Role & Document;
 
