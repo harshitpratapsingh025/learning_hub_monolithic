@@ -3,13 +3,7 @@ import { AppModule } from '../app.module';
 import { Model } from 'mongoose';
 import { getModelToken } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
-import { Role } from '../roles/schemas';
-import { Permission } from '../permissions/schemas';
-import { User } from '../users/schemas/user.schema';
-import { UserRole } from '../user-roles/schemas';
-import { Exam } from '../content/exams/schemas/exam.schema';
-import { Subject } from '../content/subjects/schemas/subject.schema';
-import { Topic } from '../content/topics/schemas/topic.schema';
+import { Role, Permission, User, UserRole , Exam, Subject, Topic} from './../modules';
 
 async function seed() {
   const app = await NestFactory.createApplicationContext(AppModule);

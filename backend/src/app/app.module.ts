@@ -3,22 +3,26 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { UsersModule } from './users/users.module';
-import { RolesModule } from './roles/roles.module';
 import { MongooseModule } from '@nestjs/mongoose';
-import { mongoConfig } from './config';
+import {} from './config';
 import { ConfigModule } from '@nestjs/config';
-import { PermissionsModule } from './permissions/permissions.module';
-import { UserRolesModule } from './user-roles/user-roles.module';
-import { AuthModule } from './auth/auth.module';
-import { validationSchema } from './config/validation.schema';
-import { ContentModule } from './content/content.module';
+import {
+  AuthModule,
+  ContentModule,
+  PermissionsModule,
+  RolesModule,
+  UserRolesModule,
+  UsersModule,
+} from './modules';
+import { validationSchema, mongoConfig } from './config';
+import {
+  JwtAuthGuard,
+  RolesGuard,
+  PermissionsGuard,
+  AllExceptionsFilter,
+  LoggingInterceptor,
+} from './common';
 import configuration from './config/configuration';
-import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
-import { RolesGuard } from './common/guards/roles.guard';
-import { PermissionsGuard } from './common/guards/permissions.guard';
-import { AllExceptionsFilter } from './common';
-import { LoggingInterceptor } from './common/interceptors';
 
 @Module({
   imports: [
@@ -62,7 +66,7 @@ import { LoggingInterceptor } from './common/interceptors';
       provide: APP_GUARD,
       useClass: PermissionsGuard,
     },
-     // Global Filters
+    // Global Filters
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,
