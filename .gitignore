@@ -47,3 +47,4 @@ vite.config.*.timestamp*
 test-output
 **.env
 **dist
+**shanti-learning-hub-f2da1ebef847.json

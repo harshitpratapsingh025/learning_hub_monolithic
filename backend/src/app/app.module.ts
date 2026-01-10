@@ -23,6 +23,7 @@ import {
   LoggingInterceptor,
 } from './common';
 import { TestsModule } from './modules/tests';
+import { StorageModule } from './storage/storage.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -52,6 +53,7 @@ import configuration from './config/configuration';
     AuthModule,
     ContentModule,
     TestsModule,
+    StorageModule,
   ],
   controllers: [AppController],
   providers: [
