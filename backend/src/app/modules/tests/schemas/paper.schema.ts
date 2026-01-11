@@ -1,36 +1,85 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
+import { Transform } from 'class-transformer';
+import { Cutoffs } from './cutoffs.schema';
 
 export type PaperDocument = Paper & Document;
 
 @Schema({ collection: 'papers', timestamps: true })
 export class Paper {
-  @Prop({ required: true })
-  exam_id: number;
+  @Transform(({ value }) => value.toString())
+  _id: Types.ObjectId;
 
-  @Prop({ required: true })
+  @Prop({ required: true, type: Types.ObjectId, ref: 'Exam', index: true })
+  examId: Types.ObjectId;
+
+  @Prop({ required: true, index: true })
+  title: string;
+
+  @Prop()
+  code?: string;
+
+  @Prop()
+  examType?: string;
+
+  @Prop({ default: true })
+  isPreviousYear: boolean;
+
+  @Prop({ required: true, index: true })
   year: string;
 
   @Prop()
-  shift: string;
+  shift?: string;
+
+  @Prop()
+  course?: string;
 
   @Prop({ required: true })
-  paper_name: string;
+  paperName: string;
 
-  @Prop({ required: true })
-  duration_minutes: number;
+  @Prop({ required: true, min: 1 })
+  durationMinutes: number;
 
-  @Prop({ required: true })
-  total_questions: number;
+  @Prop({ required: true, min: 1 })
+  totalQuestions: number;
 
-  @Prop({ required: true, type: Number })
-  total_marks: number;
+  @Prop({ required: true, type: Number, min: 0 })
+  totalMarks: number;
 
-  @Prop({ default: true })
-  is_active: boolean;
+  @Prop({ default: false })
+  sectionTimeShared: boolean;
 
-  @Prop({ type: Date, default: Date.now })
-  created_at: Date;
+  @Prop({ type: [String], default: ['en'] })
+  supportedLanguages: string[];
+
+  @Prop({ type: Cutoffs })
+  cutoffs?: Cutoffs;
+
+  @Prop({ default: true, index: true })
+  isActive: boolean;
+
+  @Prop({ type: Date })
+  createdAt: Date;
+
+  @Prop({ type: Date })
+  updatedAt: Date;
 }
 
 export const PaperSchema = SchemaFactory.createForClass(Paper);
+
+// Virtual for ID
+PaperSchema.virtual('id').get(function () {
+  return this._id.toString();
+});
+
+// JSON Transform
+PaperSchema.set('toJSON', {
+  virtuals: true,
+  transform: (doc, ret: any) => {
+    ret.id = ret._id.toString();
+    ret.examId = ret.examId?.toString();
+    delete ret._id;
+    delete ret.__v;
+    return ret;
+  },
+});

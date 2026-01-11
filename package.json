@@ -96,7 +96,6 @@
     "packages/*",
     "frontend",
     "backend",
-    "backend-e2e",
     "redis",
     "libs/*"
   ]

@@ -22,6 +22,13 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
 
+  app.enableCors({
+    origin: [
+      'http://localhost:8080',
+    ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    allowedHeaders: 'Content-Type, Accept, Authorization',
+  })
   const document = SwaggerModule.createDocument(app, config);
   const port = process.env.PORT || 3000;
 

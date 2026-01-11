@@ -1,131 +1,137 @@
 import {
   IsString,
-  IsEnum,
   IsOptional,
-  IsNumber,
   IsBoolean,
   IsMongoId,
   ValidateNested,
   IsArray,
-  ArrayMinSize,
-  Min,
+  IsObject,
+  IsNumber,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  QuestionDifficulty,
-  QuestionType,
-  QuestionSource,
-} from '../schemas/question.schema';
 
-export class CreateOptionDto {
-  @ApiProperty({ example: 'A' })
-  @IsString()
-  optionKey: string;
+export class CreateMarksDto {
+  @ApiProperty({ example: 2 })
+  @IsNumber()
+  positive!: number;
 
-  @ApiProperty({ example: 'Option text in English' })
-  @IsString()
-  textEn: string;
+  @ApiProperty({ example: 0.25 })
+  @IsNumber()
+  negative!: number;
 
-  @ApiPropertyOptional({ example: 'विकल्प पाठ हिंदी में' })
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsNumber()
+  partial?: number;
+}
+
+export class CreateSolutionDto {
+  @ApiPropertyOptional({ example: 'Detailed explanation here' })
   @IsOptional()
   @IsString()
-  textHi?: string;
+  text?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ example: 'tb' })
   @IsOptional()
   @IsString()
-  image?: string;
+  type?: string;
 
-  @ApiProperty({ example: false })
-  @IsBoolean()
-  isCorrect: boolean;
+  @ApiPropertyOptional({ example: 'https://example.com/video.mp4' })
+  @IsOptional()
+  @IsString()
+  videoUrl?: string;
+}
+
+export class CreateQuestionContentDto {
+  @ApiProperty({ example: 'What is the capital of India?' })
+  @IsString()
+  question!: string;
+
+  @ApiProperty({ example: [] })
+  @IsArray()
+  options!: any[];
+
+  @ApiPropertyOptional({ example: 'New Delhi is the capital' })
+  @IsOptional()
+  @IsString()
+  explanation?: string;
 }
 
 export class CreateQuestionDto {
   @ApiProperty()
   @IsMongoId()
-  examId: string;
+  examId!: string;
 
   @ApiProperty()
   @IsMongoId()
-  subjectId: string;
+  subjectId!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsMongoId()
+  chapterId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsMongoId()
   topicId?: string;
 
-  @ApiProperty({ enum: QuestionDifficulty })
-  @IsEnum(QuestionDifficulty)
-  difficulty: QuestionDifficulty;
-
-  @ApiProperty({ enum: QuestionType })
-  @IsEnum(QuestionType)
-  questionType: QuestionType;
-
-  @ApiProperty({ example: 'What is the capital of India?' })
+  @ApiProperty({ example: 'mcq' })
   @IsString()
-  questionEn: string;
+  type!: string;
 
-  @ApiPropertyOptional({ example: 'भारत की राजधानी क्या है?' })
-  @IsOptional()
-  @IsString()
-  questionHi?: string;
+  @ApiProperty({ type: CreateMarksDto })
+  @ValidateNested()
+  @Type(() => CreateMarksDto)
+  marks!: CreateMarksDto;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  explanationEn?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  explanationHi?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  questionImage?: string;
+  @ApiProperty()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => Object)
+  content!: {
+    en: CreateQuestionContentDto;
+    hn?: CreateQuestionContentDto;
+  };
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()
   @IsBoolean()
   hasImage?: boolean;
 
-  @ApiProperty({ example: 1.0 })
-  @IsNumber()
-  @Min(0)
-  marks: number;
-
-  @ApiProperty({ example: 0.25 })
-  @IsNumber()
-  @Min(0)
-  negativeMarks: number;
-
-  @ApiProperty({ enum: QuestionSource })
-  @IsEnum(QuestionSource)
-  createdFrom: QuestionSource;
-
-  @ApiPropertyOptional({ example: 'SSC CGL 2021 Shift 1' })
+  @ApiPropertyOptional({ example: 'B' })
   @IsOptional()
   @IsString()
-  sourceReference?: string;
+  correctOption?: string;
 
-  @ApiPropertyOptional({ example: '2021' })
+  @ApiPropertyOptional({ example: ['A', 'B'] })
   @IsOptional()
-  @IsString()
-  year?: string;
-
-  @ApiPropertyOptional({ default: false })
-  @IsOptional()
-  @IsBoolean()
-  isVerified?: boolean;
-
-  @ApiProperty({ type: [CreateOptionDto] })
   @IsArray()
-  @ArrayMinSize(2)
-  @ValidateNested({ each: true })
-  @Type(() => CreateOptionDto)
-  options: CreateOptionDto[];
+  @IsString({ each: true })
+  multiCorrectOptions?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsObject()
+  range?: {
+    start: string;
+    end: string;
+  };
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => Object)
+  solution?: {
+    en?: CreateSolutionDto;
+    hn?: CreateSolutionDto;
+  };
+
+  @ApiPropertyOptional({ example: ['reasoning', 'logic'] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
 }

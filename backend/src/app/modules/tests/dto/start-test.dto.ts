@@ -1,14 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsInt, IsNotEmpty } from 'class-validator';
+import { IsEnum, IsString, IsNotEmpty } from 'class-validator';
 
 export class StartTestDto {
   @ApiProperty({ enum: ['paper', 'mock', 'subject'] })
   @IsEnum(['paper', 'mock', 'subject'])
   @IsNotEmpty()
-  test_type: 'paper' | 'mock' | 'subject';
+  testType: 'paper' | 'mock' | 'subject';
 
-  @ApiProperty({ example: 1 })
-  @IsInt()
+  @ApiProperty({ example: '507f1f77bcf86cd799439011' })
+  @IsString()
   @IsNotEmpty()
-  test_id: number;
+  testId: string;
 }

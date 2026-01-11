@@ -1,11 +1,32 @@
-import { IsNotEmpty, IsString, IsInt, IsOptional, IsBoolean, IsNumber, Min } from 'class-validator';
+import { IsNotEmpty, IsString, IsInt, IsOptional, IsBoolean, IsNumber, Min, IsArray } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 
 export class CreatePaperDto {
-  @ApiProperty({ example: 1 })
-  @IsInt()
+  @ApiProperty({ example: '507f1f77bcf86cd799439011' })
+  @IsString()
   @IsNotEmpty()
-  exam_id: number;
+  examId: string;
+
+  @ApiProperty({ example: 'SSC CGL 2024 Tier-1 Paper' })
+  @IsString()
+  @IsNotEmpty()
+  title: string;
+
+  @ApiPropertyOptional({ example: 'SSC_CGL_2024_T1' })
+  @IsString()
+  @IsOptional()
+  code?: string;
+
+  @ApiPropertyOptional({ example: 'Previous Year Paper' })
+  @IsString()
+  @IsOptional()
+  examType?: string;
+
+  @ApiPropertyOptional({ example: true })
+  @IsBoolean()
+  @IsOptional()
+  isPreviousYear?: boolean;
 
   @ApiProperty({ example: '2024' })
   @IsString()
@@ -17,28 +38,44 @@ export class CreatePaperDto {
   @IsOptional()
   shift?: string;
 
+  @ApiPropertyOptional({ example: 'SSC' })
+  @IsString()
+  @IsOptional()
+  course?: string;
+
   @ApiProperty({ example: 'SSC CGL 2024 Tier-1' })
   @IsString()
   @IsNotEmpty()
-  paper_name: string;
+  paperName: string;
 
   @ApiProperty({ example: 60 })
   @IsInt()
   @Min(1)
-  duration_minutes: number;
+  durationMinutes: number;
 
   @ApiProperty({ example: 100 })
   @IsInt()
   @Min(1)
-  total_questions: number;
+  totalQuestions: number;
 
   @ApiProperty({ example: 200 })
   @IsNumber()
   @Min(0)
-  total_marks: number;
+  totalMarks: number;
+
+  @ApiPropertyOptional({ example: false })
+  @IsBoolean()
+  @IsOptional()
+  sectionTimeShared?: boolean;
+
+  @ApiPropertyOptional({ type: [String], example: ['en', 'hi'] })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  supportedLanguages?: string[];
 
   @ApiPropertyOptional({ example: true })
   @IsBoolean()
   @IsOptional()
-  is_active?: boolean;
+  isActive?: boolean;
 }

@@ -78,7 +78,9 @@
     }
   },
   "scripts": {
-    "seed": "ts-node src/app/database/seed.ts"
+    "seed": "ts-node src/app/database/seed.ts",
+    "seed:processed": "ts-node src/app/database/seed-from-processed.ts",
+    "process:mock": "ts-node src/app/database/process-mock-data.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",

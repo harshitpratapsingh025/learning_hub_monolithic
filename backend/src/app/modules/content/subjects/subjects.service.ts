@@ -8,11 +8,19 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Subject, SubjectDocument } from './schemas/subject.schema';
+import { Chapter, ChapterDocument } from './schemas/chapter.schema';
+import { Topic, TopicDocument } from './schemas/topic.schema';
 import { Exam, ExamDocument } from '../exams/schemas/exam.schema';
 import { CacheService } from '../../../cache/cache.service';
-import { CreateSubjectDto } from './dto/create-subject.dto';
-import { UpdateSubjectDto } from './dto/update-subject.dto';
-import { QuerySubjectsDto } from './dto/query-subjects.dto';
+import { 
+  CreateSubjectDto, 
+  UpdateSubjectDto, 
+  QuerySubjectsDto,
+  CreateChapterDto,
+  CreateTopicDto,
+  UpdateChapterDto,
+  UpdateTopicDto
+} from './dto';
 
 @Injectable()
 export class SubjectsService {
@@ -22,6 +30,8 @@ export class SubjectsService {
 
   constructor(
     @InjectModel(Subject.name) private subjectModel: Model<SubjectDocument>,
+    @InjectModel(Chapter.name) private chapterModel: Model<ChapterDocument>,
+    @InjectModel(Topic.name) private topicModel: Model<TopicDocument>,
     @InjectModel(Exam.name) private examModel: Model<ExamDocument>,
     private readonly cacheService: CacheService,
   ) {}
@@ -228,6 +238,154 @@ export class SubjectsService {
       ...subject,
       id: subject._id.toString(),
       examId: subject.examId?.toString() || subject.examId,
+    };
+  }
+
+  // Chapter methods
+  async createChapter(createChapterDto: CreateChapterDto) {
+    if (!Types.ObjectId.isValid(createChapterDto.subjectId)) {
+      throw new BadRequestException('Invalid subject ID');
+    }
+
+    const subject = await this.subjectModel.findById(createChapterDto.subjectId);
+    if (!subject) {
+      throw new NotFoundException('Subject not found');
+    }
+
+    const chapter = new this.chapterModel({
+      ...createChapterDto,
+      subjectId: new Types.ObjectId(createChapterDto.subjectId),
+    });
+
+    await chapter.save();
+    this.logger.log(`Chapter created: ${chapter.name}`);
+    return this.transformChapter(chapter.toObject());
+  }
+
+  async getChaptersBySubject(subjectId: string) {
+    if (!Types.ObjectId.isValid(subjectId)) {
+      throw new BadRequestException('Invalid subject ID');
+    }
+
+    const chapters = await this.chapterModel
+      .find({ subjectId: new Types.ObjectId(subjectId) })
+      .sort({ displayOrder: 1, name: 1 })
+      .lean();
+
+    return chapters.map(chapter => this.transformChapter(chapter));
+  }
+
+  async updateChapter(id: string, updateChapterDto: UpdateChapterDto) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid chapter ID');
+    }
+
+    const chapter = await this.chapterModel.findByIdAndUpdate(
+      id,
+      updateChapterDto,
+      { new: true }
+    );
+
+    if (!chapter) {
+      throw new NotFoundException('Chapter not found');
+    }
+
+    this.logger.log(`Chapter updated: ${id}`);
+    return this.transformChapter(chapter.toObject());
+  }
+
+  async removeChapter(id: string): Promise<void> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid chapter ID');
+    }
+
+    const chapter = await this.chapterModel.findByIdAndDelete(id);
+    if (!chapter) {
+      throw new NotFoundException('Chapter not found');
+    }
+
+    this.logger.log(`Chapter deleted: ${id}`);
+  }
+
+  // Topic methods
+  async createTopic(createTopicDto: CreateTopicDto) {
+    if (!Types.ObjectId.isValid(createTopicDto.chapterId)) {
+      throw new BadRequestException('Invalid chapter ID');
+    }
+
+    const chapter = await this.chapterModel.findById(createTopicDto.chapterId);
+    if (!chapter) {
+      throw new NotFoundException('Chapter not found');
+    }
+
+    const topic = new this.topicModel({
+      ...createTopicDto,
+      chapterId: new Types.ObjectId(createTopicDto.chapterId),
+    });
+
+    await topic.save();
+    this.logger.log(`Topic created: ${topic.name}`);
+    return this.transformTopic(topic.toObject());
+  }
+
+  async getTopicsByChapter(chapterId: string) {
+    if (!Types.ObjectId.isValid(chapterId)) {
+      throw new BadRequestException('Invalid chapter ID');
+    }
+
+    const topics = await this.topicModel
+      .find({ chapterId: new Types.ObjectId(chapterId) })
+      .sort({ displayOrder: 1, name: 1 })
+      .lean();
+
+    return topics.map(topic => this.transformTopic(topic));
+  }
+
+  async updateTopic(id: string, updateTopicDto: UpdateTopicDto) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid topic ID');
+    }
+
+    const topic = await this.topicModel.findByIdAndUpdate(
+      id,
+      updateTopicDto,
+      { new: true }
+    );
+
+    if (!topic) {
+      throw new NotFoundException('Topic not found');
+    }
+
+    this.logger.log(`Topic updated: ${id}`);
+    return this.transformTopic(topic.toObject());
+  }
+
+  async removeTopic(id: string): Promise<void> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid topic ID');
+    }
+
+    const topic = await this.topicModel.findByIdAndDelete(id);
+    if (!topic) {
+      throw new NotFoundException('Topic not found');
+    }
+
+    this.logger.log(`Topic deleted: ${id}`);
+  }
+
+  private transformChapter(chapter: any) {
+    return {
+      ...chapter,
+      id: chapter._id.toString(),
+      subjectId: chapter.subjectId?.toString() || chapter.subjectId,
+    };
+  }
+
+  private transformTopic(topic: any) {
+    return {
+      ...topic,
+      id: topic._id.toString(),
+      chapterId: topic.chapterId?.toString() || topic.chapterId,
     };
   }
 }

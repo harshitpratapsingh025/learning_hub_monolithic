@@ -1,16 +1,16 @@
-import { IsNotEmpty, IsString, IsInt, IsOptional, IsNumber, Min } from 'class-validator';
+import { IsNotEmpty, IsString, IsInt, IsOptional, IsNumber, Min, IsBoolean } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateSubjectTestDto {
-  @ApiProperty({ example: 1 })
-  @IsInt()
+  @ApiProperty({ example: '507f1f77bcf86cd799439011' })
+  @IsString()
   @IsNotEmpty()
-  exam_id: number;
+  examId: string;
 
-  @ApiProperty({ example: 1 })
-  @IsInt()
+  @ApiProperty({ example: '507f1f77bcf86cd799439012' })
+  @IsString()
   @IsNotEmpty()
-  subject_id: number;
+  subjectId: string;
 
   @ApiProperty({ example: 'General Awareness - Mock 1' })
   @IsString()
@@ -21,19 +21,20 @@ export class CreateSubjectTestDto {
   @IsInt()
   @IsOptional()
   @Min(1)
-  duration_minutes?: number;
+  durationMinutes?: number;
 
   @ApiProperty({ example: 25 })
   @IsInt()
   @Min(1)
-  total_questions: number;
+  totalQuestions: number;
 
   @ApiProperty({ example: 50 })
   @IsNumber()
   @Min(0)
-  total_marks: number;
+  totalMarks: number;
 
   @ApiPropertyOptional({ example: true })
+  @IsBoolean()
   @IsOptional()
-  is_active?: boolean;
+  isActive?: boolean;
 }

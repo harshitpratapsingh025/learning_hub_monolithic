@@ -1,4 +1,3 @@
-// src/modules/test/services/test.service.ts
 import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { InjectModel, InjectConnection } from '@nestjs/mongoose';
 import { Model, Connection, Types } from 'mongoose';
@@ -7,8 +6,8 @@ import { Cache } from 'cache-manager';
 import {
   Paper,
   PaperDocument,
-  PaperQuestion,
-  PaperQuestionDocument,
+  PaperSection,
+  PaperSectionDocument,
   MockTest,
   MockTestDocument,
   MockTestQuestion,
@@ -22,6 +21,7 @@ import {
   QuestionAttempt,
   QuestionAttemptDocument,
 } from './schemas';
+import { Question, QuestionDocument } from '../content/questions/schemas/question.schema';
 import {
   CreatePaperDto,
   CreateMockTestDto,
@@ -37,8 +37,8 @@ export class TestService {
   constructor(
     @InjectModel(Paper.name)
     private paperModel: Model<PaperDocument>,
-    @InjectModel(PaperQuestion.name)
-    private paperQuestionModel: Model<PaperQuestionDocument>,
+    @InjectModel(PaperSection.name)
+    private paperSectionModel: Model<PaperSectionDocument>,
     @InjectModel(MockTest.name)
     private mockTestModel: Model<MockTestDocument>,
     @InjectModel(MockTestQuestion.name)
@@ -51,6 +51,8 @@ export class TestService {
     private testSessionModel: Model<TestSessionDocument>,
     @InjectModel(QuestionAttempt.name)
     private questionAttemptModel: Model<QuestionAttemptDocument>,
+    @InjectModel(Question.name)
+    private questionModel: Model<QuestionDocument>,
     @InjectConnection()
     private connection: Connection,
     @Inject(CACHE_MANAGER)
@@ -63,7 +65,7 @@ export class TestService {
     const savedPaper = await paper.save();
     
     // Invalidate cache
-    await this.cacheManager.del(`papers:exam:${dto.exam_id}`);
+    await this.cacheManager.del(`papers:exam:${dto.examId}`);
     
     return savedPaper;
   }
@@ -78,18 +80,20 @@ export class TestService {
     session.startTransaction();
 
     try {
-      // Delete existing questions
-      await this.paperQuestionModel.deleteMany({ paper_id: paperId }).session(session);
+      // Delete existing sections
+      await this.paperSectionModel.deleteMany({ paperId: paperId }).session(session);
 
-      // Add new questions
-      const paperQuestions = dto.questions.map((q) => ({
-        paper_id: new Types.ObjectId(paperId),
-        question_id: q.question_id,
-        question_order: q.question_order,
-        section: q.section,
+      // Add new sections
+      const paperSections = dto.sections.map((section) => ({
+        paperId: new Types.ObjectId(paperId),
+        sectionId: section.sectionId,
+        sectionName: section.sectionName,
+        isOptional: section.isOptional || false,
+        isMandatory: section.isMandatory !== false,
+        questionIds: section.questionIds.map(id => new Types.ObjectId(id)),
       }));
 
-      await this.paperQuestionModel.insertMany(paperQuestions, { session });
+      await this.paperSectionModel.insertMany(paperSections, { session });
       await session.commitTransaction();
 
       // Invalidate cache
@@ -107,17 +111,17 @@ export class TestService {
     const cached = await this.cacheManager.get(cacheKey);
     if (cached) return cached;
 
-    const { page = 1, limit = 10, exam_id, is_active } = query;
+    const { page = 1, limit = 10, examId, isActive } = query;
     const skip = (page - 1) * limit;
 
     const filter: any = {};
-    if (exam_id) filter.exam_id = exam_id;
-    if (is_active !== undefined) filter.is_active = is_active;
+    if (examId) filter.examId = examId;
+    if (isActive !== undefined) filter.isActive = isActive;
 
     const [items, total] = await Promise.all([
       this.paperModel
         .find(filter)
-        .sort({ year: -1, created_at: -1 })
+        .sort({ year: -1, createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean()
@@ -150,16 +154,25 @@ export class TestService {
       throw new NotFoundException('Paper not found');
     }
 
-    // Get questions for this paper
-    const questions = await this.paperQuestionModel
-      .find({ paper_id: new Types.ObjectId(id) })
-      .sort({ question_order: 1 })
+    // Get sections with questions
+    const paperSections = await this.paperSectionModel
+      .find({ paperId: new Types.ObjectId(id) })
+      .populate({
+        path: 'questionIds',
+        model: 'Question'
+      })
       .lean()
       .exec();
 
     const result = {
       ...paper,
-      questions,
+      sections: paperSections.map(section => ({
+        sectionId: section._id,
+        sectionName: section.sectionName,
+        isOptional: section.isOptional,
+        isMandatory: section.isMandatory,
+        questions: section.questionIds
+      }))
     };
 
     await this.cacheManager.set(cacheKey, result, 300000);
@@ -179,7 +192,7 @@ export class TestService {
 
     // Invalidate cache
     await this.cacheManager.del(`paper:${id}`);
-    await this.cacheManager.del(`papers:exam:${paper.exam_id}`);
+    await this.cacheManager.del(`papers:exam:${paper.examId}`);
 
     return paper;
   }
@@ -191,12 +204,12 @@ export class TestService {
       throw new NotFoundException('Paper not found');
     }
 
-    // Delete associated questions
-    await this.paperQuestionModel.deleteMany({ paper_id: new Types.ObjectId(id) });
+    // Delete associated sections
+    await this.paperSectionModel.deleteMany({ paperId: new Types.ObjectId(id) });
 
     // Invalidate cache
     await this.cacheManager.del(`paper:${id}`);
-    await this.cacheManager.del(`papers:exam:${paper.exam_id}`);
+    await this.cacheManager.del(`papers:exam:${paper.examId}`);
   }
 
   // ==================== MOCK TEST OPERATIONS ====================
@@ -204,7 +217,7 @@ export class TestService {
     const mockTest = new this.mockTestModel(dto);
     const savedTest = await mockTest.save();
     
-    await this.cacheManager.del(`mock-tests:exam:${dto.exam_id}`);
+    await this.cacheManager.del(`mock-tests:exam:${dto.examId}`);
     
     return savedTest;
   }
@@ -219,14 +232,16 @@ export class TestService {
     session.startTransaction();
 
     try {
-      await this.mockTestQuestionModel.deleteMany({ mock_test_id: mockTestId }).session(session);
+      await this.mockTestQuestionModel.deleteMany({ mockTestId: mockTestId }).session(session);
 
-      const mockTestQuestions = dto.questions.map((q) => ({
-        mock_test_id: new Types.ObjectId(mockTestId),
-        question_id: q.question_id,
-        question_order: q.question_order,
-        section: q.section,
-      }));
+      const mockTestQuestions = dto.sections.flatMap((section) => 
+        section.questionIds.map((questionId, index) => ({
+          mockTestId: new Types.ObjectId(mockTestId),
+          questionId: new Types.ObjectId(questionId),
+          questionOrder: index + 1,
+          section: section.sectionName,
+        }))
+      );
 
       await this.mockTestQuestionModel.insertMany(mockTestQuestions, { session });
       await session.commitTransaction();
@@ -245,18 +260,18 @@ export class TestService {
     const cached = await this.cacheManager.get(cacheKey);
     if (cached) return cached;
 
-    const { page = 1, limit = 10, exam_id, difficulty, is_active } = query;
+    const { page = 1, limit = 10, examId, difficulty, isActive } = query;
     const skip = (page - 1) * limit;
 
     const filter: any = {};
-    if (exam_id) filter.exam_id = exam_id;
+    if (examId) filter.examId = examId;
     if (difficulty) filter.difficulty = difficulty;
-    if (is_active !== undefined) filter.is_active = is_active;
+    if (isActive !== undefined) filter.isActive = isActive;
 
     const [items, total] = await Promise.all([
       this.mockTestModel
         .find(filter)
-        .sort({ created_at: -1 })
+        .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean()
@@ -290,8 +305,8 @@ export class TestService {
     }
 
     const questions = await this.mockTestQuestionModel
-      .find({ mock_test_id: new Types.ObjectId(id) })
-      .sort({ question_order: 1 })
+      .find({ mockTestId: new Types.ObjectId(id) })
+      .sort({ questionOrder: 1 })
       .lean()
       .exec();
 
@@ -309,7 +324,7 @@ export class TestService {
     const subjectTest = new this.subjectTestModel(dto);
     const savedTest = await subjectTest.save();
     
-    await this.cacheManager.del(`subject-tests:subject:${dto.subject_id}`);
+    await this.cacheManager.del(`subject-tests:subject:${dto.subjectId}`);
     
     return savedTest;
   }
@@ -324,13 +339,15 @@ export class TestService {
     session.startTransaction();
 
     try {
-      await this.subjectTestQuestionModel.deleteMany({ subject_test_id: subjectTestId }).session(session);
+      await this.subjectTestQuestionModel.deleteMany({ subjectTestId: subjectTestId }).session(session);
 
-      const subjectTestQuestions = dto.questions.map((q) => ({
-        subject_test_id: new Types.ObjectId(subjectTestId),
-        question_id: q.question_id,
-        question_order: q.question_order,
-      }));
+      const subjectTestQuestions = dto.sections.flatMap((section) => 
+        section.questionIds.map((questionId, index) => ({
+          subjectTestId: new Types.ObjectId(subjectTestId),
+          questionId: new Types.ObjectId(questionId),
+          questionOrder: index + 1,
+        }))
+      );
 
       await this.subjectTestQuestionModel.insertMany(subjectTestQuestions, { session });
       await session.commitTransaction();
@@ -349,18 +366,18 @@ export class TestService {
     const cached = await this.cacheManager.get(cacheKey);
     if (cached) return cached;
 
-    const { page = 1, limit = 10, exam_id, subject_id, is_active } = query;
+    const { page = 1, limit = 10, examId, subjectId, isActive } = query;
     const skip = (page - 1) * limit;
 
     const filter: any = {};
-    if (exam_id) filter.exam_id = exam_id;
-    if (subject_id) filter.subject_id = subject_id;
-    if (is_active !== undefined) filter.is_active = is_active;
+    if (examId) filter.examId = examId;
+    if (subjectId) filter.subjectId = subjectId;
+    if (isActive !== undefined) filter.isActive = isActive;
 
     const [items, total] = await Promise.all([
       this.subjectTestModel
         .find(filter)
-        .sort({ created_at: -1 })
+        .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean()
@@ -394,8 +411,8 @@ export class TestService {
     }
 
     const questions = await this.subjectTestQuestionModel
-      .find({ subject_test_id: new Types.ObjectId(id) })
-      .sort({ question_order: 1 })
+      .find({ subjectTestId: new Types.ObjectId(id) })
+      .sort({ questionOrder: 1 })
       .lean()
       .exec();
 
@@ -412,9 +429,9 @@ export class TestService {
   async startTest(userId: string, dto: StartTestDto): Promise<TestSessionDocument> {
     // Check for existing in-progress session
     const existingSession = await this.testSessionModel.findOne({
-      user_id: userId,
-      test_type: dto.test_type,
-      test_id: dto.test_id,
+      userId: userId,
+      testType: dto.testType,
+      testId: dto.testId,
       status: 'in_progress',
     });
 
@@ -424,25 +441,25 @@ export class TestService {
 
     // Get test details to set total marks
     let totalMarks = 0;
-    if (dto.test_type === 'paper') {
-      const paper = await this.paperModel.findById(dto.test_id);
+    if (dto.testType === 'paper') {
+      const paper = await this.paperModel.findById(dto.testId);
       if (!paper) throw new NotFoundException('Paper not found');
-      totalMarks = Number(paper.total_marks);
-    } else if (dto.test_type === 'mock') {
-      const mock = await this.mockTestModel.findById(dto.test_id);
+      totalMarks = Number(paper.totalMarks);
+    } else if (dto.testType === 'mock') {
+      const mock = await this.mockTestModel.findById(dto.testId);
       if (!mock) throw new NotFoundException('Mock test not found');
-      totalMarks = Number(mock.total_marks);
+      totalMarks = Number(mock.totalMarks);
     } else {
-      const subject = await this.subjectTestModel.findById(dto.test_id);
+      const subject = await this.subjectTestModel.findById(dto.testId);
       if (!subject) throw new NotFoundException('Subject test not found');
-      totalMarks = Number(subject.total_marks);
+      totalMarks = Number(subject.totalMarks);
     }
 
     const session = new this.testSessionModel({
-      user_id: userId,
-      test_type: dto.test_type,
-      test_id: dto.test_id,
-      total_marks_possible: totalMarks,
+      userId: userId,
+      testType: dto.testType,
+      testId: dto.testId,
+      totalMarksPossible: totalMarks,
     });
 
     return await session.save();
@@ -461,14 +478,14 @@ export class TestService {
     // Check if answer already exists
     const existingAttempt = await this.questionAttemptModel.findOne({
       session_id: new Types.ObjectId(sessionId),
-      question_id: dto.question_id,
+      question_id: dto.questionId,
     });
 
     if (existingAttempt) {
       // Update existing attempt
-      existingAttempt.selected_option_id = dto.selected_option_id;
-      existingAttempt.marked_for_review = dto.marked_for_review || false;
-      existingAttempt.time_spent_seconds = dto.time_spent_seconds;
+      existingAttempt.selected_option_id = dto.selectedOptionId;
+      existingAttempt.marked_for_review = dto.markedForReview || false;
+      existingAttempt.time_spent_seconds = dto.timeSpentSeconds;
       existingAttempt.attempt_number += 1;
       existingAttempt.attempted_at = new Date();
       await existingAttempt.save();
@@ -476,10 +493,10 @@ export class TestService {
       // Create new attempt
       const attempt = new this.questionAttemptModel({
         session_id: new Types.ObjectId(sessionId),
-        question_id: dto.question_id,
-        selected_option_id: dto.selected_option_id,
-        marked_for_review: dto.marked_for_review || false,
-        time_spent_seconds: dto.time_spent_seconds,
+        question_id: dto.questionId,
+        selected_option_id: dto.selectedOptionId,
+        marked_for_review: dto.markedForReview || false,
+        time_spent_seconds: dto.timeSpentSeconds,
       });
       await attempt.save();
     }
@@ -508,27 +525,24 @@ export class TestService {
     let incorrectCount = 0;
     let totalMarksScored = 0;
 
-    // You'll need to fetch questions from your Question service/model
-    // This is a simplified version - adjust based on your Question schema
-    const questionIds = attempts.map((a) => a.question_id);
-    
-    // Assuming you have access to questions - adjust this based on your implementation
-    // For now, using a placeholder calculation
+    // Process each attempt
     for (const attempt of attempts) {
       if (!attempt.selected_option_id) continue;
 
-      // You need to verify if the answer is correct by checking against the Question model
-      // This is placeholder logic - implement based on your Question schema
+      // Verify if the answer is correct
       const isCorrect = await this.verifyAnswer(attempt.question_id, attempt.selected_option_id);
       
       attempt.is_correct = isCorrect;
 
+      // Get question to calculate marks
+      const question = await this.questionModel.findById(attempt.question_id).lean();
+      
       if (isCorrect) {
         correctCount++;
-        totalMarksScored += 1; // Default marks - adjust based on question
+        totalMarksScored += question?.marks?.positive || 1;
       } else {
         incorrectCount++;
-        totalMarksScored -= 0.25; // Default negative marks - adjust based on question
+        totalMarksScored -= question?.marks?.negative || 0.25;
       }
 
       await attempt.save();
@@ -540,14 +554,14 @@ export class TestService {
 
     // Update session
     session.status = 'submitted';
-    session.submitted_at = new Date();
-    session.time_taken_seconds = Math.floor((new Date().getTime() - session.started_at.getTime()) / 1000);
-    session.total_attempted = totalAttempted;
-    session.correct_answers = correctCount;
-    session.incorrect_answers = incorrectCount;
+    session.submittedAt = new Date();
+    session.timeTakenSeconds = Math.floor((new Date().getTime() - session.startedAt.getTime()) / 1000);
+    session.totalAttempted = totalAttempted;
+    session.correctAnswers = correctCount;
+    session.incorrectAnswers = incorrectCount;
     session.unanswered = unanswered;
-    session.total_marks_scored = Math.max(0, totalMarksScored);
-    session.accuracy_percentage = Math.round(accuracy * 100) / 100;
+    session.totalMarksScored = Math.max(0, totalMarksScored);
+    session.accuracyPercentage = Math.round(accuracy * 100) / 100;
 
     await session.save();
     await this.cacheManager.del(`session:${sessionId}`);
@@ -556,10 +570,21 @@ export class TestService {
   }
 
   // Helper method to verify answer - implement based on your Question schema
-  private async verifyAnswer(questionId: number, selectedOptionId: number): Promise<boolean> {
-    // This should query your Question/Option schema to check if the selected option is correct
-    // Placeholder implementation - adjust based on your actual schema
-    return true;
+  private async verifyAnswer(questionId: Types.ObjectId, selectedOptionId: string): Promise<boolean> {
+    const question = await this.questionModel.findById(questionId).lean();
+    if (!question) return false;
+    
+    // Check single correct option
+    if (question.correctOption) {
+      return question.correctOption === selectedOptionId;
+    }
+    
+    // Check multiple correct options
+    if (question.multiCorrectOptions?.length) {
+      return question.multiCorrectOptions.includes(selectedOptionId);
+    }
+    
+    return false;
   }
 
   async getSessionDetails(sessionId: string) {

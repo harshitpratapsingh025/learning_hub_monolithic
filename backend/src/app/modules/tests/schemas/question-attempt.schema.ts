@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Types } from "mongoose";
+import { Document, Types } from "mongoose";
 
 export type QuestionAttemptDocument = QuestionAttempt & Document;
 
@@ -8,11 +8,11 @@ export class QuestionAttempt {
   @Prop({ required: true, type: Types.ObjectId, ref: 'TestSession' })
   session_id: Types.ObjectId;
 
-  @Prop({ required: true })
-  question_id: number;
+  @Prop({ required: true, type: Types.ObjectId, ref: 'Question' })
+  question_id: Types.ObjectId;
 
   @Prop()
-  selected_option_id: number;
+  selected_option_id: string;
 
   @Prop()
   is_correct: boolean;

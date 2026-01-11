@@ -1,24 +1,24 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsNotEmpty, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsBoolean, IsInt } from 'class-validator';
 
 export class SubmitAnswerDto {
-  @ApiProperty({ example: 1 })
-  @IsInt()
+  @ApiProperty({ example: '507f1f77bcf86cd799439011' })
+  @IsString()
   @IsNotEmpty()
-  question_id: number;
+  questionId: string;
 
-  @ApiPropertyOptional({ example: 1 })
-  @IsInt()
+  @ApiPropertyOptional({ example: 'A' })
+  @IsString()
   @IsOptional()
-  selected_option_id?: number;
+  selectedOptionId?: string;
 
   @ApiPropertyOptional({ example: false })
   @IsBoolean()
   @IsOptional()
-  marked_for_review?: boolean;
+  markedForReview?: boolean;
 
   @ApiPropertyOptional({ example: 45 })
   @IsInt()
   @IsOptional()
-  time_spent_seconds?: number;
+  timeSpentSeconds?: number;
 }

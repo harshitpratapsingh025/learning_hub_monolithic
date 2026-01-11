@@ -14,6 +14,7 @@ export enum QuestionType {
   SINGLE = 'single',
   MULTIPLE = 'multiple',
   NUMERICAL = 'numerical',
+  MCQ = 'mcq',
 }
 
 export enum QuestionSource {
@@ -45,79 +46,114 @@ class Option {
 
 const OptionSchema = SchemaFactory.createForClass(Option);
 
+@Schema({ _id: false })
+class QuestionContent {
+  @Prop({ required: true })
+  question: string;
+
+  @Prop({ type: [Object], default: [] })
+  options: any[];
+
+  @Prop()
+  explanation?: string;
+}
+
+@Schema({ _id: false })
+class Marks {
+  @Prop({ required: true })
+  positive: number;
+
+  @Prop({ required: true })
+  negative: number;
+
+  @Prop()
+  partial?: number;
+}
+
+@Schema({ _id: false })
+class Solution {
+  @Prop()
+  text?: string;
+
+  @Prop()
+  type?: string;
+
+  @Prop()
+  videoUrl?: string;
+}
+
 @Schema({ timestamps: true, collection: 'questions' })
 export class Question {
   @Transform(({ value }) => value.toString())
   _id: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, required: true, index: true })
+  @Prop({ type: Types.ObjectId, required: true })
   examId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, required: true, index: true })
+  @Prop({ type: Types.ObjectId, required: true })
   subjectId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, index: true })
+  @Prop({ type: Types.ObjectId })
+  chapterId?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId })
   topicId?: Types.ObjectId;
 
-  @Prop({ type: String, enum: QuestionDifficulty, required: true, index: true })
-  difficulty: QuestionDifficulty;
+  @Prop({ type: String, enum: QuestionType, default: QuestionType.MCQ })
+  type: string;
 
-  @Prop({ type: String, enum: QuestionType, default: QuestionType.SINGLE })
-  questionType: QuestionType;
+  @Prop({ type: Marks, required: true })
+  marks: Marks;
 
-  @Prop({ required: true })
-  questionEn: string;
-
-  @Prop()
-  questionHi?: string;
-
-  @Prop()
-  explanationEn?: string;
-
-  @Prop()
-  explanationHi?: string;
-
-  @Prop()
-  questionImage?: string;
+  @Prop({ type: Object, required: true })
+  content: {
+    en: QuestionContent;
+    hn?: QuestionContent;
+  };
 
   @Prop({ default: false })
   hasImage: boolean;
 
-  @Prop({ type: Number, default: 1.0 })
-  marks: number;
-
-  @Prop({ type: Number, default: 0.25 })
-  negativeMarks: number;
-
-  @Prop({ type: String, enum: QuestionSource })
-  createdFrom?: QuestionSource;
-
   @Prop()
-  sourceReference?: string;
+  correctOption?: string;
 
-  @Prop()
-  year?: string;
+  @Prop({ type: [String] })
+  multiCorrectOptions?: string[];
 
-  @Prop({ default: true, index: true })
+  @Prop({ type: Object })
+  range?: {
+    start: string;
+    end: string;
+  };
+
+  @Prop({ type: Object })
+  solution?: {
+    en?: Solution;
+    hn?: Solution;
+  };
+
+  @Prop({ type: [String], default: [] })
+  tags: string[];
+
+  @Prop({ default: true })
   isActive: boolean;
 
-  @Prop({ default: false })
-  isVerified: boolean;
-
-  @Prop({ type: [OptionSchema], default: [] })
-  options: Option[];
+  @Prop({ type: Date })
+  deletedAt?: Date;
 
   @Prop({ type: Date })
   createdAt: Date;
-
-  @Prop({ type: Date })
-  updatedAt: Date;
-
-  @Prop({ type: Date, default: null })
-  deletedAt?: Date;
 }
 
 export const QuestionSchema = SchemaFactory.createForClass(Question);
+
+// Indexes
+QuestionSchema.index({ examId: 1, subjectId: 1 });
+QuestionSchema.index({ examId: 1, subjectId: 1, chapterId: 1 });
+QuestionSchema.index({ examId: 1, subjectId: 1, chapterId: 1, topicId: 1 });
+QuestionSchema.index({ examId: 1, isActive: 1 });
+QuestionSchema.index({ subjectId: 1, isActive: 1 });
+QuestionSchema.index({ tags: 1 });
 
 // Virtual for ID
 QuestionSchema.virtual('id').get(function () {
@@ -130,6 +166,7 @@ QuestionSchema.set('toJSON', {
     ret.id = ret._id.toString();
     ret.examId = ret.examId?.toString();
     ret.subjectId = ret.subjectId?.toString();
+    ret.chapterId = ret.chapterId?.toString();
     ret.topicId = ret.topicId?.toString();
     
     // Transform option IDs

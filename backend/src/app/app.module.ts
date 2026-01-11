@@ -9,16 +9,16 @@ import { ConfigModule } from '@nestjs/config';
 import {
   AuthModule,
   ContentModule,
-  PermissionsModule,
-  RolesModule,
-  UserRolesModule,
+  // PermissionsModule,
+  // RolesModule,
+  // UserRolesModule,
   UsersModule,
 } from './modules';
 import { validationSchema, mongoConfig } from './config';
 import {
   JwtAuthGuard,
-  RolesGuard,
-  PermissionsGuard,
+  // RolesGuard,
+  // PermissionsGuard,
   AllExceptionsFilter,
   LoggingInterceptor,
 } from './common';
@@ -33,7 +33,7 @@ import configuration from './config/configuration';
       validationSchema: validationSchema,
       load: [configuration],
       validationOptions: {
-        abortEarly: true, // stop at first error
+        abortEarly: true,
       },
       envFilePath: `.env`,
     }),
@@ -47,9 +47,9 @@ import configuration from './config/configuration';
       },
     ]),
     UsersModule,
-    RolesModule,
-    PermissionsModule,
-    UserRolesModule,
+    // RolesModule,
+    // PermissionsModule,
+    // UserRolesModule,
     AuthModule,
     ContentModule,
     TestsModule,
@@ -62,14 +62,14 @@ import configuration from './config/configuration';
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
-    {
-      provide: APP_GUARD,
-      useClass: RolesGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: PermissionsGuard,
-    },
+    // {
+    //   provide: APP_GUARD,
+    //   useClass: RolesGuard,
+    // },
+    // {
+    //   provide: APP_GUARD,
+    //   useClass: PermissionsGuard,
+    // },
     // Global Filters
     {
       provide: APP_FILTER,

@@ -10,10 +10,20 @@ export class CreateExamDto {
   @IsString()
   code!: string;
 
-  @ApiPropertyOptional({ example: 'Combined Graduate Level examination by SSC' })
+  @ApiPropertyOptional({ example: 'Combined Graduate Level examination by Staff Selection Commission' })
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiPropertyOptional({ example: 'CGL' })
+  @IsOptional()
+  @IsString()
+  shortName?: string;
+
+  @ApiPropertyOptional({ example: '📋' })
+  @IsOptional()
+  @IsString()
+  icon?: string;
 
   @ApiPropertyOptional({ default: true })
   @IsOptional()

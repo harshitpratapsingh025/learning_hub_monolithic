@@ -17,9 +17,15 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { SubjectsService } from './subjects.service';
-import { CreateSubjectDto } from './dto/create-subject.dto';
-import { UpdateSubjectDto } from './dto/update-subject.dto';
-import { QuerySubjectsDto } from './dto/query-subjects.dto';
+import { 
+  CreateSubjectDto, 
+  UpdateSubjectDto, 
+  QuerySubjectsDto,
+  CreateChapterDto,
+  CreateTopicDto,
+  UpdateChapterDto,
+  UpdateTopicDto
+} from './dto';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 
 @ApiTags('Subjects')
@@ -70,5 +76,71 @@ export class SubjectsController {
   @ApiOperation({ summary: 'Delete subject' })
   async remove(@Param('id') id: string) {
     await this.subjectsService.remove(id);
+  }
+
+  // Chapter routes
+  @Post('chapters')
+  @RequirePermissions('subjects:create')
+  @ApiOperation({ summary: 'Create new chapter' })
+  @ApiResponse({ status: 201, description: 'Chapter created successfully' })
+  async createChapter(@Body() createChapterDto: CreateChapterDto) {
+    return this.subjectsService.createChapter(createChapterDto);
+  }
+
+  @Get(':subjectId/chapters')
+  @ApiOperation({ summary: 'Get chapters by subject' })
+  async getChaptersBySubject(@Param('subjectId') subjectId: string) {
+    return this.subjectsService.getChaptersBySubject(subjectId);
+  }
+
+  @Put('chapters/:id')
+  @RequirePermissions('subjects:update')
+  @ApiOperation({ summary: 'Update chapter' })
+  async updateChapter(
+    @Param('id') id: string,
+    @Body() updateChapterDto: UpdateChapterDto
+  ) {
+    return this.subjectsService.updateChapter(id, updateChapterDto);
+  }
+
+  @Delete('chapters/:id')
+  @RequirePermissions('subjects:delete')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete chapter' })
+  async removeChapter(@Param('id') id: string) {
+    await this.subjectsService.removeChapter(id);
+  }
+
+  // Topic routes
+  @Post('topics')
+  @RequirePermissions('subjects:create')
+  @ApiOperation({ summary: 'Create new topic' })
+  @ApiResponse({ status: 201, description: 'Topic created successfully' })
+  async createTopic(@Body() createTopicDto: CreateTopicDto) {
+    return this.subjectsService.createTopic(createTopicDto);
+  }
+
+  @Get('chapters/:chapterId/topics')
+  @ApiOperation({ summary: 'Get topics by chapter' })
+  async getTopicsByChapter(@Param('chapterId') chapterId: string) {
+    return this.subjectsService.getTopicsByChapter(chapterId);
+  }
+
+  @Put('topics/:id')
+  @RequirePermissions('subjects:update')
+  @ApiOperation({ summary: 'Update topic' })
+  async updateTopic(
+    @Param('id') id: string,
+    @Body() updateTopicDto: UpdateTopicDto
+  ) {
+    return this.subjectsService.updateTopic(id, updateTopicDto);
+  }
+
+  @Delete('topics/:id')
+  @RequirePermissions('subjects:delete')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete topic' })
+  async removeTopic(@Param('id') id: string) {
+    await this.subjectsService.removeTopic(id);
   }
 }

@@ -1,7 +1,6 @@
-import { IsOptional, IsMongoId, IsEnum, IsInt, Min, Max, IsString } from 'class-validator';
+import { IsOptional, IsMongoId, IsInt, Min, Max, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { QuestionDifficulty, QuestionSource } from '../schemas/question.schema';
 
 export class QueryQuestionsDto {
   @ApiPropertyOptional()
@@ -17,22 +16,17 @@ export class QueryQuestionsDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsMongoId()
-  topicId?: string;
-
-  @ApiPropertyOptional({ enum: QuestionDifficulty })
-  @IsOptional()
-  @IsEnum(QuestionDifficulty)
-  difficulty?: QuestionDifficulty;
-
-  @ApiPropertyOptional({ enum: QuestionSource })
-  @IsOptional()
-  @IsEnum(QuestionSource)
-  createdFrom?: QuestionSource;
+  chapterId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsMongoId()
+  topicId?: string;
+
+  @ApiPropertyOptional({ example: 'mcq' })
+  @IsOptional()
   @IsString()
-  year?: string;
+  type?: string;
 
   @ApiPropertyOptional({ default: 50, minimum: 1, maximum: 100 })
   @IsOptional()

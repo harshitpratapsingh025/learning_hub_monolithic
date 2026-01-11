@@ -10,17 +10,40 @@ export class Topic {
   @Transform(({ value }) => value.toString())
   _id!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, required: true, index: true, ref: 'Subject' })
-  subjectId!: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, required: true, ref: 'Chapter' })
+  chapterId!: Types.ObjectId;
 
   @Prop({ required: true })
   name!: string;
 
+  @Prop()
+  description?: string;
+
+  @Prop()
+  shortName?: string;
+
+  @Prop()
+  icon?: string;
+
   @Prop({ default: 0 })
   displayOrder!: number;
+
+  @Prop({ default: true })
+  isActive!: boolean;
+
+  @Prop()
+  createdAt?: Date;
+
+  @Prop()
+  updatedAt?: Date;
 }
 
 export const TopicSchema = SchemaFactory.createForClass(Topic);
+
+// Indexes
+TopicSchema.index({ chapterId: 1, displayOrder: 1 });
+TopicSchema.index({ chapterId: 1, isActive: 1 });
+TopicSchema.index({ chapterId: 1, name: 1 }, { unique: true });
 
 TopicSchema.virtual('id').get(function () {
   return this._id.toString();

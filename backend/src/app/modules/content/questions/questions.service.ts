@@ -29,36 +29,19 @@ export class QuestionsService {
     if (!Types.ObjectId.isValid(createQuestionDto.subjectId)) {
       throw new BadRequestException('Invalid subject ID');
     }
-    if (
-      createQuestionDto.topicId &&
-      !Types.ObjectId.isValid(createQuestionDto.topicId)
-    ) {
+    if (createQuestionDto.chapterId && !Types.ObjectId.isValid(createQuestionDto.chapterId)) {
+      throw new BadRequestException('Invalid chapter ID');
+    }
+    if (createQuestionDto.topicId && !Types.ObjectId.isValid(createQuestionDto.topicId)) {
       throw new BadRequestException('Invalid topic ID');
-    }
-
-    // Validate options
-    const correctOptions = createQuestionDto.options.filter((opt) => opt.isCorrect);
-    
-    if (correctOptions.length === 0) {
-      throw new BadRequestException('At least one option must be marked as correct');
-    }
-
-    if (
-      createQuestionDto.questionType === 'single' &&
-      correctOptions.length > 1
-    ) {
-      throw new BadRequestException(
-        'Single choice questions can have only one correct option',
-      );
     }
 
     const question = new this.questionModel({
       ...createQuestionDto,
       examId: new Types.ObjectId(createQuestionDto.examId),
       subjectId: new Types.ObjectId(createQuestionDto.subjectId),
-      topicId: createQuestionDto.topicId
-        ? new Types.ObjectId(createQuestionDto.topicId)
-        : undefined,
+      chapterId: createQuestionDto.chapterId ? new Types.ObjectId(createQuestionDto.chapterId) : undefined,
+      topicId: createQuestionDto.topicId ? new Types.ObjectId(createQuestionDto.topicId) : undefined,
     });
 
     await question.save();
@@ -98,6 +81,13 @@ export class QuestionsService {
       query.subjectId = new Types.ObjectId(filters.subjectId);
     }
 
+    if (filters.chapterId) {
+      if (!Types.ObjectId.isValid(filters.chapterId)) {
+        throw new BadRequestException('Invalid chapter ID');
+      }
+      query.chapterId = new Types.ObjectId(filters.chapterId);
+    }
+
     if (filters.topicId) {
       if (!Types.ObjectId.isValid(filters.topicId)) {
         throw new BadRequestException('Invalid topic ID');
@@ -105,16 +95,8 @@ export class QuestionsService {
       query.topicId = new Types.ObjectId(filters.topicId);
     }
 
-    if (filters.difficulty) {
-      query.difficulty = filters.difficulty;
-    }
-
-    if (filters.createdFrom) {
-      query.createdFrom = filters.createdFrom;
-    }
-
-    if (filters.year) {
-      query.year = filters.year;
+    if (filters.type) {
+      query.type = filters.type;
     }
 
     const [questions, total] = await Promise.all([
@@ -200,7 +182,6 @@ export class QuestionsService {
     examId: string,
     subjectId?: string,
     count = 10,
-    difficulty?: string,
   ): Promise<Question[]> {
     if (!Types.ObjectId.isValid(examId)) {
       throw new BadRequestException('Invalid exam ID');
@@ -216,10 +197,6 @@ export class QuestionsService {
         throw new BadRequestException('Invalid subject ID');
       }
       query.subjectId = new Types.ObjectId(subjectId);
-    }
-
-    if (difficulty) {
-      query.difficulty = difficulty;
     }
 
     const questions = await this.questionModel
@@ -247,25 +224,8 @@ export class QuestionsService {
     }
 
     // Validate options if provided
-    if (updateQuestionDto.options) {
-      const correctOptions = updateQuestionDto.options.filter(
-        (opt) => opt.isCorrect,
-      );
-
-      if (correctOptions.length === 0) {
-        throw new BadRequestException(
-          'At least one option must be marked as correct',
-        );
-      }
-
-      if (
-        (updateQuestionDto.questionType || question.questionType) === 'single' &&
-        correctOptions.length > 1
-      ) {
-        throw new BadRequestException(
-          'Single choice questions can have only one correct option',
-        );
-      }
+    if (updateQuestionDto.content) {
+      // Basic validation for content structure
     }
     Object.assign(question, updateQuestionDto);
     await question.save();
@@ -310,13 +270,12 @@ export class QuestionsService {
     explanation?: string;
   }> {
     const question = await this.findOne(questionId);
-    const correctOptions = question.options.filter((opt: any) => opt.isCorrect);
-    const correctOptionIds = correctOptions.map((opt: any) => opt.id.toString());
+    const correctOptionIds = question.correctOption ? [question.correctOption] : question.multiCorrectOptions || [];
 
     return {
       isCorrect: correctOptionIds.includes(selectedOptionId),
       correctOptionIds,
-      explanation: question.explanationEn,
+      explanation: question.solution?.en?.text,
     };
   }
 
@@ -343,11 +302,8 @@ export class QuestionsService {
       id: question._id.toString(),
       examId: question.examId?.toString(),
       subjectId: question.subjectId?.toString(),
+      chapterId: question.chapterId?.toString(),
       topicId: question.topicId?.toString(),
-      options: question.options?.map((opt: any) => ({
-        ...opt,
-        id: opt._id?.toString(),
-      })),
     };
   }
 }

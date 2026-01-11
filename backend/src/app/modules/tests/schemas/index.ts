@@ -1,3 +1,4 @@
+export * from './cutoffs.schema';
 export * from './paper.schema';
 export * from './paper-question.schema';
 export * from './mock-test.schema';

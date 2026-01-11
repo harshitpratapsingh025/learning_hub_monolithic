@@ -10,20 +10,37 @@ export class Exam {
   @Transform(({ value }) => value.toString())
   _id!: Types.ObjectId;
 
-  @Prop({ required: true, unique: true, index: true })
+  @Prop({ required: true, unique: true })
   name!: string;
 
-  @Prop({ required: true, unique: true, index: true })
+  @Prop({ required: true, unique: true })
   code!: string;
 
   @Prop()
   description?: string;
 
-  @Prop({ default: true, index: true })
+  @Prop()
+  shortName?: string;
+
+  @Prop()
+  icon?: string;
+
+  @Prop({ default: true })
   isActive!: boolean;
+
+  @Prop()
+  createdAt?: Date;
+
+  @Prop()
+  updatedAt?: Date;
 }
 
 export const ExamSchema = SchemaFactory.createForClass(Exam);
+
+// Indexes
+ExamSchema.index({ name: 1 }, { unique: true });
+ExamSchema.index({ code: 1 }, { unique: true });
+ExamSchema.index({ isActive: 1 });
 
 ExamSchema.virtual('id').get(function () {
   return this._id.toString();

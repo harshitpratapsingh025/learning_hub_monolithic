@@ -1,26 +1,26 @@
 import { IsString, IsOptional, IsInt, IsMongoId, Min, IsBoolean } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class CreateSubjectDto {
+export class CreateTopicDto {
   @ApiProperty()
   @IsMongoId()
-  examId!: string;
+  chapterId!: string;
 
-  @ApiProperty({ example: 'General Intelligence and Reasoning' })
+  @ApiProperty({ example: 'Linear Equations' })
   @IsString()
   name!: string;
 
-  @ApiPropertyOptional({ example: 'Reasoning and logical thinking' })
+  @ApiPropertyOptional({ example: 'Solving linear equations' })
   @IsOptional()
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ example: 'Reasoning' })
+  @ApiPropertyOptional({ example: 'LinEq' })
   @IsOptional()
   @IsString()
   shortName?: string;
 
-  @ApiPropertyOptional({ example: '🧠' })
+  @ApiPropertyOptional({ example: '📐' })
   @IsOptional()
   @IsString()
   icon?: string;

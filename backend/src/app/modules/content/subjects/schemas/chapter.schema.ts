@@ -3,15 +3,15 @@ import { Document, Types } from 'mongoose';
 import { Transform } from 'class-transformer';
 import { MongoSerialized } from '../../../../common';
 
-export type SubjectDocument = Subject & Document;
+export type ChapterDocument = Chapter & Document;
 
-@Schema({ timestamps: true, collection: 'subjects' })
-export class Subject {
+@Schema({ timestamps: true, collection: 'chapters' })
+export class Chapter {
   @Transform(({ value }) => value.toString())
   _id!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, required: true, ref: 'Exam' })
-  examId!: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, required: true, ref: 'Subject' })
+  subjectId!: Types.ObjectId;
 
   @Prop({ required: true })
   name!: string;
@@ -38,18 +38,18 @@ export class Subject {
   updatedAt?: Date;
 }
 
-export const SubjectSchema = SchemaFactory.createForClass(Subject);
+export const ChapterSchema = SchemaFactory.createForClass(Chapter);
 
 // Indexes
-SubjectSchema.index({ examId: 1, displayOrder: 1 });
-SubjectSchema.index({ examId: 1, isActive: 1 });
-SubjectSchema.index({ examId: 1, name: 1 }, { unique: true });
+ChapterSchema.index({ subjectId: 1, displayOrder: 1 });
+ChapterSchema.index({ subjectId: 1, isActive: 1 });
+ChapterSchema.index({ subjectId: 1, name: 1 }, { unique: true });
 
-SubjectSchema.virtual('id').get(function () {
+ChapterSchema.virtual('id').get(function () {
   return this._id.toString();
 });
 
-SubjectSchema.set('toJSON', {
+ChapterSchema.set('toJSON', {
   virtuals: true,
   transform: (doc, ret: MongoSerialized) => {
     ret.id = ret._id?.toString();

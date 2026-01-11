@@ -48,13 +48,11 @@ export class QuestionsController {
     @Query('examId') examId: string,
     @Query('subjectId') subjectId?: string,
     @Query('count') count?: number,
-    @Query('difficulty') difficulty?: string,
   ) {
     return this.questionsService.findRandom(
       examId,
       subjectId,
       count || 10,
-      difficulty,
     );
   }
 
