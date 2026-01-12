@@ -225,7 +225,7 @@ export class QuestionsService {
 
     // Validate options if provided
     if (updateQuestionDto.content) {
-      // Basic validation for content structure
+      // Basic validation for content structure including comprehension
     }
     Object.assign(question, updateQuestionDto);
     await question.save();

@@ -26,11 +26,13 @@ function transformQuestion(question) {
         question: question.en?.value || "",
         options: question.en?.options || [],
         explanation: question.en?.explanation || null,
+        comprehension: question.en?.comp || null,
       },
       hn: {
         question: question.hn?.value || "",
         options: question.hn?.options || [],
         explanation: question.hn?.explanation || null,
+        comprehension: question.en?.comp || null,
       },
     },
 

@@ -56,6 +56,9 @@ class QuestionContent {
 
   @Prop()
   explanation?: string;
+
+  @Prop()
+  comprehension?: string;
 }
 
 @Schema({ _id: false })

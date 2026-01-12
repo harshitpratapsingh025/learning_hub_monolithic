@@ -56,6 +56,11 @@ export class CreateQuestionContentDto {
   @IsOptional()
   @IsString()
   explanation?: string;
+
+  @ApiPropertyOptional({ example: 'Read the passage and answer the question' })
+  @IsOptional()
+  @IsString()
+  comprehension?: string;
 }
 
 export class CreateQuestionDto {
