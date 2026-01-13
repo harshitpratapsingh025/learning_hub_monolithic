@@ -78,6 +78,9 @@
     }
   },
   "scripts": {
+    "build": "webpack-cli build --node-env=production",
+    "start": "node dist/main.js",
+    "start:prod": "node dist/main.js",
     "seed": "ts-node src/app/database/seed.ts",
     "seed:processed": "ts-node src/app/database/seed-from-processed.ts",
     "process:mock": "ts-node src/app/database/process-mock-data.ts"
@@ -87,6 +90,23 @@
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/swagger": "^11.2.3",
+    "@nestjs/mongoose": "^10.0.0",
+    "@nestjs/config": "^3.0.0",
+    "@nestjs/jwt": "^10.0.0",
+    "@nestjs/passport": "^10.0.0",
+    "@nestjs/throttler": "^5.0.0",
+    "@nestjs/cache-manager": "^2.0.0",
+    "@google-cloud/storage": "^7.0.0",
+    "mongoose": "^8.0.0",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "bcrypt": "^5.1.0",
+    "joi": "^17.9.0",
+    "cache-manager": "^5.2.0",
+    "cache-manager-ioredis-yet": "^1.2.0",
+    "uuid": "^9.0.0",
+    "class-validator": "^0.14.0",
+    "class-transformer": "^0.5.1",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0",
     "tslib": "^2.3.0"
@@ -95,6 +115,13 @@
     "@nestjs/mapped-types": "^2.1.0",
     "@nestjs/testing": "^11.0.0",
     "@types/node": "20.19.9",
+    "@types/bcrypt": "^5.0.0",
+    "@types/passport-jwt": "^3.0.9",
+    "@types/uuid": "^9.0.0",
+    "@nx/webpack": "^18.0.0",
+    "webpack": "^5.88.0",
+    "webpack-cli": "^5.1.0",
+    "ts-loader": "^9.4.0",
     "ts-node": "10.9.1",
     "typescript": "~5.9.2"
   }

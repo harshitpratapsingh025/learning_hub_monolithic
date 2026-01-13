@@ -23,7 +23,7 @@ async function bootstrap() {
     .build();
 
   app.enableCors({
-    origin: [
+    origin: process.env.CORS_ORIGIN?.split(',') || [
       'http://localhost:8080',
       'https://shantilearninghub.online',
       'https://www.shantilearninghub.online'
@@ -41,7 +41,7 @@ async function bootstrap() {
     );
   }
 
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   Logger.log(
     `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`
   );
