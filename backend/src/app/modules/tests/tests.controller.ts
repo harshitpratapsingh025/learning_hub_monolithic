@@ -201,8 +201,9 @@ export class TestController {
   async generateRandomTest(
     @Param('subjectId') subjectId: string,
     @Query('examId') examId: string,
+    @Query('chapterId') chapterId?: string,
     @Query('count') count = '10',
   ) {
-    return this.testService.generateRandomTest(subjectId, examId, Number(count));
+    return this.testService.generateRandomTest(subjectId, examId, Number(count), chapterId);
   }
 }

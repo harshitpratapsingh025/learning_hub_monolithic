@@ -616,24 +616,31 @@ export class TestService {
   }
 
   // ==================== RANDOM QUESTIONS ====================
-  async generateRandomTest(subjectId: string, examId: string, questionCount: number) {
+  async generateRandomTest(subjectId: string, examId: string, questionCount: number, chapterId?: string) {
     if (!Types.ObjectId.isValid(subjectId)) {
       throw new BadRequestException('Invalid subject ID');
     }
     if (!Types.ObjectId.isValid(examId)) {
       throw new BadRequestException('Invalid exam ID');
     }
+    if (chapterId && !Types.ObjectId.isValid(chapterId)) {
+      throw new BadRequestException('Invalid chapter ID');
+    }
+
+    const matchFilter: any = {
+      subjectId: new Types.ObjectId(subjectId),
+      examId: new Types.ObjectId(examId),
+      isActive: true
+    };
+
+    if (chapterId) {
+      matchFilter.chapterId = new Types.ObjectId(chapterId);
+    }
 
     const [questions, subject] = await Promise.all([
       this.questionModel
         .aggregate([
-          { 
-            $match: { 
-              subjectId: new Types.ObjectId(subjectId),
-              examId: new Types.ObjectId(examId),
-              isActive: true 
-            } 
-          },
+          { $match: matchFilter },
           { $sample: { size: questionCount } }
         ])
         .exec(),

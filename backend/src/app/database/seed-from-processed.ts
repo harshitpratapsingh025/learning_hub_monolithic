@@ -86,18 +86,31 @@ async function seedFromProcessedData() {
     const chapterMap = new Map();
     const topicMap = new Map();
     
-    // Extract unique chapters and topics from questions
+    // Extract unique chapters and topics from questions with their section mapping
     const uniqueChapters = new Map();
     const uniqueTopics = new Map();
     
     for (const questionData of processedData.questions) {
-      if (questionData.chapterId && questionData.chapterName) {
-        uniqueChapters.set(questionData.chapterId, {
-          id: questionData.chapterId,
-          name: questionData.chapterName,
-          subjectId: questionData.subjectId
-        });
+      // Find which section this question belongs to
+      let questionSectionId = null;
+      for (const section of processedData.sections) {
+        if (section.questionIds?.includes(questionData._id)) {
+          questionSectionId = section._id;
+          break;
+        }
       }
+      
+      if (questionData.chapterId && questionData.chapterName && questionSectionId) {
+        const chapterKey = questionData.chapterId;
+        if (!uniqueChapters.has(chapterKey)) {
+          uniqueChapters.set(chapterKey, {
+            id: questionData.chapterId,
+            name: questionData.chapterName,
+            sectionId: questionSectionId
+          });
+        }
+      }
+      
       if (questionData.topicId && questionData.topicName) {
         uniqueTopics.set(questionData.topicId, {
           id: questionData.topicId,
@@ -109,8 +122,7 @@ async function seedFromProcessedData() {
     
     // Create chapters
     for (const chapterData of uniqueChapters.values()) {
-      const subjectId = subjectMap.get(chapterData.subjectId) || 
-        Array.from(subjectMap.values())[0]; // fallback to first subject
+      const subjectId = subjectMap.get(chapterData.sectionId);
       
       const existingChapter = await chapterModel.findOne({
         _id: new Types.ObjectId(chapterData.id)
