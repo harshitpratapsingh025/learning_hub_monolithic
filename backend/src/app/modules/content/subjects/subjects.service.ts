@@ -145,7 +145,16 @@ export class SubjectsService {
       throw new NotFoundException('Subject not found');
     }
 
-    const transformed = this.transformSubject(subject);
+    const chapters = await this.chapterModel
+      .find({ subjectId: new Types.ObjectId(id), isActive: true })
+      .sort({ displayOrder: 1, name: 1 })
+      .lean();
+
+    const transformed = {
+      ...this.transformSubject(subject),
+      chapters: chapters.map(chapter => this.transformChapter(chapter))
+    };
+    
     await this.cacheService.set(cacheKey, transformed, this.CACHE_TTL);
 
     return transformed;
@@ -268,7 +277,7 @@ export class SubjectsService {
     }
 
     const chapters = await this.chapterModel
-      .find({ subjectId: new Types.ObjectId(subjectId) })
+      .find({ subjectId: new Types.ObjectId(subjectId), isActive: true })
       .sort({ displayOrder: 1, name: 1 })
       .lean();
 

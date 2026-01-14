@@ -193,4 +193,16 @@ export class TestController {
   async getSessionDetails(@Param('sessionId') sessionId: string) {
     return this.testService.getSessionDetails(sessionId);
   }
+
+  @Get('random/:subjectId')
+  @ApiOperation({ summary: 'Generate random test for subject' })
+  @ApiParam({ name: 'subjectId', description: 'Subject ID (MongoDB ObjectId)' })
+  @ApiResponse({ status: 200, description: 'Random test generated successfully' })
+  async generateRandomTest(
+    @Param('subjectId') subjectId: string,
+    @Query('examId') examId: string,
+    @Query('count') count = '10',
+  ) {
+    return this.testService.generateRandomTest(subjectId, examId, Number(count));
+  }
 }

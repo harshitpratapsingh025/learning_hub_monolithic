@@ -54,6 +54,12 @@ export class SubjectsController {
     return this.subjectsService.findByExam(examId);
   }
 
+  @Get(':subjectId/chapters')
+  @ApiOperation({ summary: 'Get chapters by subject' })
+  async getChaptersBySubject(@Param('subjectId') subjectId: string) {
+    return this.subjectsService.getChaptersBySubject(subjectId);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get subject by ID' })
   async findOne(@Param('id') id: string) {
@@ -85,12 +91,6 @@ export class SubjectsController {
   @ApiResponse({ status: 201, description: 'Chapter created successfully' })
   async createChapter(@Body() createChapterDto: CreateChapterDto) {
     return this.subjectsService.createChapter(createChapterDto);
-  }
-
-  @Get(':subjectId/chapters')
-  @ApiOperation({ summary: 'Get chapters by subject' })
-  async getChaptersBySubject(@Param('subjectId') subjectId: string) {
-    return this.subjectsService.getChaptersBySubject(subjectId);
   }
 
   @Put('chapters/:id')

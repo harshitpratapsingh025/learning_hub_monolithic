@@ -22,6 +22,7 @@ import {
   QuestionAttemptDocument,
 } from './schemas';
 import { Question, QuestionDocument } from '../content/questions/schemas/question.schema';
+import { Subject, SubjectDocument } from '../content/subjects/schemas/subject.schema';
 import {
   CreatePaperDto,
   CreateMockTestDto,
@@ -53,6 +54,8 @@ export class TestService {
     private questionAttemptModel: Model<QuestionAttemptDocument>,
     @InjectModel(Question.name)
     private questionModel: Model<QuestionDocument>,
+    @InjectModel(Subject.name)
+    private subjectModel: Model<SubjectDocument>,
     @InjectConnection()
     private connection: Connection,
     @Inject(CACHE_MANAGER)
@@ -610,5 +613,62 @@ export class TestService {
 
     await this.cacheManager.set(cacheKey, result, 300000);
     return result;
+  }
+
+  // ==================== RANDOM QUESTIONS ====================
+  async generateRandomTest(subjectId: string, examId: string, questionCount: number) {
+    if (!Types.ObjectId.isValid(subjectId)) {
+      throw new BadRequestException('Invalid subject ID');
+    }
+    if (!Types.ObjectId.isValid(examId)) {
+      throw new BadRequestException('Invalid exam ID');
+    }
+
+    const [questions, subject] = await Promise.all([
+      this.questionModel
+        .aggregate([
+          { 
+            $match: { 
+              subjectId: new Types.ObjectId(subjectId),
+              examId: new Types.ObjectId(examId),
+              isActive: true 
+            } 
+          },
+          { $sample: { size: questionCount } }
+        ])
+        .exec(),
+      this.subjectModel.findById(subjectId).select('name').lean()
+    ]);
+
+    if (questions.length === 0) {
+      throw new NotFoundException('No questions found for this subject');
+    }
+
+    const subjectName = subject?.name || 'Subject';
+    const totalMarks = questions.reduce((sum, q) => sum + (q.marks?.positive || 2), 0);
+
+    return {
+      title: `${subjectName} - Random Test`,
+      subjectId,
+      examId,
+      totalQuestions: questions.length,
+      totalMarks,
+      durationMinutes: questionCount * 0.8,
+      sections: [
+        {
+          sectionId: subjectId,
+          sectionName: subjectName,
+          isOptional: false,
+          isMandatory: true,
+          questions: questions.map(q => ({
+            ...q,
+            id: q._id.toString(),
+            subjectId: q.subjectId?.toString(),
+            chapterId: q.chapterId?.toString(),
+            topicId: q.topicId?.toString(),
+          }))
+        }
+      ]
+    };
   }
 }

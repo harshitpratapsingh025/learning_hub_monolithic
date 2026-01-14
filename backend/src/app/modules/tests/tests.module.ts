@@ -22,6 +22,7 @@ import {
   QuestionAttemptSchema,
 } from './schemas';
 import { Question, QuestionSchema } from '../content/questions/schemas/question.schema';
+import { Subject, SubjectSchema } from '../content/subjects/schemas/subject.schema';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { Question, QuestionSchema } from '../content/questions/schemas/question.
       { name: TestSession.name, schema: TestSessionSchema },
       { name: QuestionAttempt.name, schema: QuestionAttemptSchema },
       { name: Question.name, schema: QuestionSchema },
+      { name: Subject.name, schema: SubjectSchema },
     ]),
     CacheModule.register(),
   ],
