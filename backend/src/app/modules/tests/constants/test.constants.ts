@@ -18,7 +18,6 @@ export const TEST_CONSTANTS = {
   },
   TEST_TYPES: {
     PAPER: 'paper',
-    MOCK: 'mock',
     SUBJECT: 'subject',
   },
   DIFFICULTY_LEVELS: {

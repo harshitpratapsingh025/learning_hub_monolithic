@@ -8,14 +8,6 @@ import {
   PaperDocument,
   PaperSection,
   PaperSectionDocument,
-  MockTest,
-  MockTestDocument,
-  MockTestQuestion,
-  MockTestQuestionDocument,
-  SubjectTest,
-  SubjectTestDocument,
-  SubjectTestQuestion,
-  SubjectTestQuestionDocument,
   TestSession,
   TestSessionDocument,
   QuestionAttempt,
@@ -25,8 +17,6 @@ import { Question, QuestionDocument } from '../content/questions/schemas/questio
 import { Subject, SubjectDocument } from '../content/subjects/schemas/subject.schema';
 import {
   CreatePaperDto,
-  CreateMockTestDto,
-  CreateSubjectTestDto,
   AddQuestionsDto,
   StartTestDto,
   SubmitAnswerDto,
@@ -40,14 +30,6 @@ export class TestService {
     private paperModel: Model<PaperDocument>,
     @InjectModel(PaperSection.name)
     private paperSectionModel: Model<PaperSectionDocument>,
-    @InjectModel(MockTest.name)
-    private mockTestModel: Model<MockTestDocument>,
-    @InjectModel(MockTestQuestion.name)
-    private mockTestQuestionModel: Model<MockTestQuestionDocument>,
-    @InjectModel(SubjectTest.name)
-    private subjectTestModel: Model<SubjectTestDocument>,
-    @InjectModel(SubjectTestQuestion.name)
-    private subjectTestQuestionModel: Model<SubjectTestQuestionDocument>,
     @InjectModel(TestSession.name)
     private testSessionModel: Model<TestSessionDocument>,
     @InjectModel(QuestionAttempt.name)
@@ -215,219 +197,6 @@ export class TestService {
     await this.cacheManager.del(`papers:exam:${paper.examId}`);
   }
 
-  // ==================== MOCK TEST OPERATIONS ====================
-  async createMockTest(dto: CreateMockTestDto): Promise<MockTestDocument> {
-    const mockTest = new this.mockTestModel(dto);
-    const savedTest = await mockTest.save();
-    
-    await this.cacheManager.del(`mock-tests:exam:${dto.examId}`);
-    
-    return savedTest;
-  }
-
-  async addQuestionsToMockTest(mockTestId: string, dto: AddQuestionsDto): Promise<void> {
-    const mockTest = await this.mockTestModel.findById(mockTestId);
-    if (!mockTest) {
-      throw new NotFoundException('Mock test not found');
-    }
-
-    const session = await this.connection.startSession();
-    session.startTransaction();
-
-    try {
-      await this.mockTestQuestionModel.deleteMany({ mockTestId: mockTestId }).session(session);
-
-      const mockTestQuestions = dto.sections.flatMap((section) => 
-        section.questionIds.map((questionId, index) => ({
-          mockTestId: new Types.ObjectId(mockTestId),
-          questionId: new Types.ObjectId(questionId),
-          questionOrder: index + 1,
-          section: section.sectionName,
-        }))
-      );
-
-      await this.mockTestQuestionModel.insertMany(mockTestQuestions, { session });
-      await session.commitTransaction();
-
-      await this.cacheManager.del(`mock-test:${mockTestId}:questions`);
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
-    }
-  }
-
-  async getMockTests(query: QueryTestDto) {
-    const cacheKey = `mock-tests:${JSON.stringify(query)}`;
-    const cached = await this.cacheManager.get(cacheKey);
-    if (cached) return cached;
-
-    const { page = 1, limit = 10, examId, difficulty, isActive } = query;
-    const skip = (page - 1) * limit;
-
-    const filter: any = {};
-    if (examId) filter.examId = examId;
-    if (difficulty) filter.difficulty = difficulty;
-    if (isActive !== undefined) filter.isActive = isActive;
-
-    const [items, total] = await Promise.all([
-      this.mockTestModel
-        .find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean()
-        .exec(),
-      this.mockTestModel.countDocuments(filter),
-    ]);
-
-    const result = {
-      items,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-
-    await this.cacheManager.set(cacheKey, result, 300000);
-    return result;
-  }
-
-  async getMockTestById(id: string) {
-    const cacheKey = `mock-test:${id}`;
-    const cached = await this.cacheManager.get(cacheKey);
-    if (cached) return cached;
-
-    const mockTest = await this.mockTestModel.findById(id).lean().exec();
-
-    if (!mockTest) {
-      throw new NotFoundException('Mock test not found');
-    }
-
-    const questions = await this.mockTestQuestionModel
-      .find({ mockTestId: new Types.ObjectId(id) })
-      .sort({ questionOrder: 1 })
-      .lean()
-      .exec();
-
-    const result = {
-      ...mockTest,
-      questions,
-    };
-
-    await this.cacheManager.set(cacheKey, result, 300000);
-    return result;
-  }
-
-  // ==================== SUBJECT TEST OPERATIONS ====================
-  async createSubjectTest(dto: CreateSubjectTestDto): Promise<SubjectTestDocument> {
-    const subjectTest = new this.subjectTestModel(dto);
-    const savedTest = await subjectTest.save();
-    
-    await this.cacheManager.del(`subject-tests:subject:${dto.subjectId}`);
-    
-    return savedTest;
-  }
-
-  async addQuestionsToSubjectTest(subjectTestId: string, dto: AddQuestionsDto): Promise<void> {
-    const subjectTest = await this.subjectTestModel.findById(subjectTestId);
-    if (!subjectTest) {
-      throw new NotFoundException('Subject test not found');
-    }
-
-    const session = await this.connection.startSession();
-    session.startTransaction();
-
-    try {
-      await this.subjectTestQuestionModel.deleteMany({ subjectTestId: subjectTestId }).session(session);
-
-      const subjectTestQuestions = dto.sections.flatMap((section) => 
-        section.questionIds.map((questionId, index) => ({
-          subjectTestId: new Types.ObjectId(subjectTestId),
-          questionId: new Types.ObjectId(questionId),
-          questionOrder: index + 1,
-        }))
-      );
-
-      await this.subjectTestQuestionModel.insertMany(subjectTestQuestions, { session });
-      await session.commitTransaction();
-
-      await this.cacheManager.del(`subject-test:${subjectTestId}:questions`);
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
-    }
-  }
-
-  async getSubjectTests(query: QueryTestDto) {
-    const cacheKey = `subject-tests:${JSON.stringify(query)}`;
-    const cached = await this.cacheManager.get(cacheKey);
-    if (cached) return cached;
-
-    const { page = 1, limit = 10, examId, subjectId, isActive } = query;
-    const skip = (page - 1) * limit;
-
-    const filter: any = {};
-    if (examId) filter.examId = examId;
-    if (subjectId) filter.subjectId = subjectId;
-    if (isActive !== undefined) filter.isActive = isActive;
-
-    const [items, total] = await Promise.all([
-      this.subjectTestModel
-        .find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean()
-        .exec(),
-      this.subjectTestModel.countDocuments(filter),
-    ]);
-
-    const result = {
-      items,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-
-    await this.cacheManager.set(cacheKey, result, 300000);
-    return result;
-  }
-
-  async getSubjectTestById(id: string) {
-    const cacheKey = `subject-test:${id}`;
-    const cached = await this.cacheManager.get(cacheKey);
-    if (cached) return cached;
-
-    const subjectTest = await this.subjectTestModel.findById(id).lean().exec();
-
-    if (!subjectTest) {
-      throw new NotFoundException('Subject test not found');
-    }
-
-    const questions = await this.subjectTestQuestionModel
-      .find({ subjectTestId: new Types.ObjectId(id) })
-      .sort({ questionOrder: 1 })
-      .lean()
-      .exec();
-
-    const result = {
-      ...subjectTest,
-      questions,
-    };
-
-    await this.cacheManager.set(cacheKey, result, 300000);
-    return result;
-  }
-
   // ==================== TEST SESSION OPERATIONS ====================
   async startTest(userId: string, dto: StartTestDto): Promise<TestSessionDocument> {
     // Check for existing in-progress session
@@ -448,14 +217,6 @@ export class TestService {
       const paper = await this.paperModel.findById(dto.testId);
       if (!paper) throw new NotFoundException('Paper not found');
       totalMarks = Number(paper.totalMarks);
-    } else if (dto.testType === 'mock') {
-      const mock = await this.mockTestModel.findById(dto.testId);
-      if (!mock) throw new NotFoundException('Mock test not found');
-      totalMarks = Number(mock.totalMarks);
-    } else {
-      const subject = await this.subjectTestModel.findById(dto.testId);
-      if (!subject) throw new NotFoundException('Subject test not found');
-      totalMarks = Number(subject.totalMarks);
     }
 
     const session = new this.testSessionModel({

@@ -15,8 +15,6 @@ import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse, ApiParam } from '@ne
 import { TestService } from './tests.service';
 import {
   CreatePaperDto,
-  CreateMockTestDto,
-  CreateSubjectTestDto,
   AddQuestionsDto,
   StartTestDto,
   SubmitAnswerDto,
@@ -85,78 +83,6 @@ export class TestController {
   }
 
   
-
-  // ==================== MOCK TEST ENDPOINTS ====================
-  @Post('mock-tests')
-  @ApiOperation({ summary: 'Create a new mock test' })
-  @ApiResponse({ status: 201, description: 'Mock test created successfully' })
-  async createMockTest(@Body() dto: CreateMockTestDto) {
-    return this.testService.createMockTest(dto);
-  }
-
-  @Post('mock-tests/:id/questions')
-  @ApiOperation({ summary: 'Add questions to a mock test' })
-  @ApiParam({ name: 'id', description: 'Mock Test ID (MongoDB ObjectId)' })
-  @ApiResponse({ status: 200, description: 'Questions added successfully' })
-  async addQuestionsToMockTest(
-    @Param('id') id: string,
-    @Body() dto: AddQuestionsDto,
-  ) {
-    await this.testService.addQuestionsToMockTest(id, dto);
-    return { message: 'Questions added successfully' };
-  }
-
-  @Get('mock-tests')
-  @ApiOperation({ summary: 'Get all mock tests with filters' })
-  @ApiResponse({ status: 200, description: 'Mock tests retrieved successfully' })
-  async getMockTests(@Query() query: QueryTestDto) {
-    return this.testService.getMockTests(query);
-  }
-
-  @Get('mock-tests/:id')
-  @ApiOperation({ summary: 'Get mock test by ID' })
-  @ApiParam({ name: 'id', description: 'Mock Test ID (MongoDB ObjectId)' })
-  @ApiResponse({ status: 200, description: 'Mock test retrieved successfully' })
-  async getMockTestById(@Param('id') id: string) {
-    return this.testService.getMockTestById(id);
-  }
-
-
-
-  // ==================== SUBJECT TEST ENDPOINTS ====================
-  @Post('subject-tests')
-  @ApiOperation({ summary: 'Create a new subject test' })
-  @ApiResponse({ status: 201, description: 'Subject test created successfully' })
-  async createSubjectTest(@Body() dto: CreateSubjectTestDto) {
-    return this.testService.createSubjectTest(dto);
-  }
-
-  @Post('subject-tests/:id/questions')
-  @ApiOperation({ summary: 'Add questions to a subject test' })
-  @ApiParam({ name: 'id', description: 'Subject Test ID (MongoDB ObjectId)' })
-  @ApiResponse({ status: 200, description: 'Questions added successfully' })
-  async addQuestionsToSubjectTest(
-    @Param('id') id: string,
-    @Body() dto: AddQuestionsDto,
-  ) {
-    await this.testService.addQuestionsToSubjectTest(id, dto);
-    return { message: 'Questions added successfully' };
-  }
-
-  @Get('subject-tests')
-  @ApiOperation({ summary: 'Get all subject tests with filters' })
-  @ApiResponse({ status: 200, description: 'Subject tests retrieved successfully' })
-  async getSubjectTests(@Query() query: QueryTestDto) {
-    return this.testService.getSubjectTests(query);
-  }
-
-  @Get('subject-tests/:id')
-  @ApiOperation({ summary: 'Get subject test by ID' })
-  @ApiParam({ name: 'id', description: 'Subject Test ID (MongoDB ObjectId)' })
-  @ApiResponse({ status: 200, description: 'Subject test retrieved successfully' })
-  async getSubjectTestById(@Param('id') id: string) {
-    return this.testService.getSubjectTestById(id);
-  }
 
   // ==================== TEST SESSION ENDPOINTS ====================
   @Post('sessions/start')
