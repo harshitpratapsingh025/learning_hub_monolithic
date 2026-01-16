@@ -16,8 +16,7 @@ import { TestService } from './tests.service';
 import {
   CreatePaperDto,
   AddQuestionsDto,
-  StartTestDto,
-  SubmitAnswerDto,
+  SubmitTestDto,
   QueryTestDto,
 } from './dto';
 
@@ -85,40 +84,13 @@ export class TestController {
   
 
   // ==================== TEST SESSION ENDPOINTS ====================
-  @Post('sessions/start')
-  @ApiOperation({ summary: 'Start a test session' })
-  @ApiResponse({ status: 201, description: 'Test session started successfully' })
-  async startTest(@Request() req, @Body() dto: StartTestDto) {
-    return this.testService.startTest(req.user.userId, dto);
+  @Post('submit')
+  @ApiOperation({ summary: 'Submit test with answers' })
+  @ApiResponse({ status: 201, description: 'Test submitted successfully' })
+  async submitTest(@Request() req, @Body() dto: SubmitTestDto) {
+    return this.testService.submitTest(req.user.userId, dto);
   }
 
-  @Post('sessions/:sessionId/submit-answer')
-  @ApiOperation({ summary: 'Submit answer for a question in a session' })
-  @ApiParam({ name: 'sessionId', description: 'Session ID (MongoDB ObjectId)' })
-  @ApiResponse({ status: 200, description: 'Answer submitted successfully' })
-  async submitAnswer(
-    @Param('sessionId') sessionId: string,
-    @Body() dto: SubmitAnswerDto,
-  ) {
-    await this.testService.submitAnswer(sessionId, dto);
-    return { message: 'Answer submitted successfully' };
-  }
-
-  @Post('sessions/:sessionId/submit')
-  @ApiOperation({ summary: 'Submit the entire test' })
-  @ApiParam({ name: 'sessionId', description: 'Session ID (MongoDB ObjectId)' })
-  @ApiResponse({ status: 200, description: 'Test submitted successfully' })
-  async submitTest(@Param('sessionId') sessionId: string) {
-    return this.testService.submitTest(sessionId);
-  }
-
-  @Get('sessions/:sessionId')
-  @ApiOperation({ summary: 'Get test session details' })
-  @ApiParam({ name: 'sessionId', description: 'Session ID (MongoDB ObjectId)' })
-  @ApiResponse({ status: 200, description: 'Session details retrieved successfully' })
-  async getSessionDetails(@Param('sessionId') sessionId: string) {
-    return this.testService.getSessionDetails(sessionId);
-  }
 
   @Get('random/:subjectId')
   @ApiOperation({ summary: 'Generate random test for subject' })

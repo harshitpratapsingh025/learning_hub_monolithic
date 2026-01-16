@@ -261,6 +261,21 @@ export class QuestionsService {
     this.logger.log(`Question deleted (soft): ${id}`);
   }
 
+  async removeBySubject(subjectId: string): Promise<void> {
+    if (!Types.ObjectId.isValid(subjectId)) {
+      throw new BadRequestException('Invalid subject ID');
+    }
+
+    const result = await this.questionModel.deleteMany(
+      { subjectId: new Types.ObjectId(subjectId) }
+    );
+
+    // Invalidate caches
+    await this.cacheService.deletePattern(`${this.CACHE_PREFIX}*`);
+
+    this.logger.log(`Permanently deleted ${result.deletedCount} questions for subject: ${subjectId}`);
+  }
+
   async checkAnswer(
     questionId: string,
     selectedOptionId: string,

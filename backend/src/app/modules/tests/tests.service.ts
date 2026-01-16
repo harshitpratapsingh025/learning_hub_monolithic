@@ -18,8 +18,7 @@ import { Subject, SubjectDocument } from '../content/subjects/schemas/subject.sc
 import {
   CreatePaperDto,
   AddQuestionsDto,
-  StartTestDto,
-  SubmitAnswerDto,
+  SubmitTestDto,
   QueryTestDto,
 } from './dto';
 
@@ -100,7 +99,7 @@ export class TestService {
     const skip = (page - 1) * limit;
 
     const filter: any = {};
-    if (examId) filter.examId = examId;
+    if (examId) filter.examId = new Types.ObjectId(examId);
     if (isActive !== undefined) filter.isActive = isActive;
 
     const [items, total] = await Promise.all([
@@ -198,182 +197,75 @@ export class TestService {
   }
 
   // ==================== TEST SESSION OPERATIONS ====================
-  async startTest(userId: string, dto: StartTestDto): Promise<TestSessionDocument> {
-    // Check for existing in-progress session
-    const existingSession = await this.testSessionModel.findOne({
-      userId: userId,
-      testType: dto.testType,
-      testId: dto.testId,
-      status: 'in_progress',
-    });
+  async submitTest(userId: string, dto: SubmitTestDto): Promise<TestSessionDocument> {
+    const session = await this.connection.startSession();
+    session.startTransaction();
 
-    if (existingSession) {
-      return existingSession;
-    }
-
-    // Get test details to set total marks
-    let totalMarks = 0;
-    if (dto.testType === 'paper') {
+    try {
+      // Create test session
       const paper = await this.paperModel.findById(dto.testId);
       if (!paper) throw new NotFoundException('Paper not found');
-      totalMarks = Number(paper.totalMarks);
-    }
 
-    const session = new this.testSessionModel({
-      userId: userId,
-      testType: dto.testType,
-      testId: dto.testId,
-      totalMarksPossible: totalMarks,
-    });
+      const totalMarks = Number(paper.totalMarks);
+      const correctCount = dto.answers.filter(a => a.isCorrect).length;
+      const incorrectCount = dto.answers.filter(a => !a.isCorrect && a.selectedOption).length;
+      const totalAttempted = dto.answers.filter(a => a.selectedOption).length;
+      const unanswered = dto.answers.length - totalAttempted;
+      const timeTaken = dto.answers.reduce((sum, a) => sum + a.timeTaken, 0);
+      const accuracy = totalAttempted > 0 ? (correctCount / totalAttempted) * 100 : 0;
 
-    return await session.save();
-  }
-
-  async submitAnswer(sessionId: string, dto: SubmitAnswerDto): Promise<void> {
-    const session = await this.testSessionModel.findById(sessionId);
-    if (!session) {
-      throw new NotFoundException('Session not found');
-    }
-
-    if (session.status !== 'in_progress') {
-      throw new BadRequestException('Test has already been submitted');
-    }
-
-    // Check if answer already exists
-    const existingAttempt = await this.questionAttemptModel.findOne({
-      session_id: new Types.ObjectId(sessionId),
-      question_id: dto.questionId,
-    });
-
-    if (existingAttempt) {
-      // Update existing attempt
-      existingAttempt.selected_option_id = dto.selectedOptionId;
-      existingAttempt.marked_for_review = dto.markedForReview || false;
-      existingAttempt.time_spent_seconds = dto.timeSpentSeconds;
-      existingAttempt.attempt_number += 1;
-      existingAttempt.attempted_at = new Date();
-      await existingAttempt.save();
-    } else {
-      // Create new attempt
-      const attempt = new this.questionAttemptModel({
-        session_id: new Types.ObjectId(sessionId),
-        question_id: dto.questionId,
-        selected_option_id: dto.selectedOptionId,
-        marked_for_review: dto.markedForReview || false,
-        time_spent_seconds: dto.timeSpentSeconds,
-      });
-      await attempt.save();
-    }
-
-    // Clear session cache
-    await this.cacheManager.del(`session:${sessionId}`);
-  }
-
-  async submitTest(sessionId: string): Promise<TestSessionDocument> {
-    const session = await this.testSessionModel.findById(sessionId);
-
-    if (!session) {
-      throw new NotFoundException('Session not found');
-    }
-
-    if (session.status !== 'in_progress') {
-      throw new BadRequestException('Test has already been submitted');
-    }
-
-    // Get all attempts for this session
-    const attempts = await this.questionAttemptModel.find({
-      session_id: new Types.ObjectId(sessionId),
-    });
-
-    let correctCount = 0;
-    let incorrectCount = 0;
-    let totalMarksScored = 0;
-
-    // Process each attempt
-    for (const attempt of attempts) {
-      if (!attempt.selected_option_id) continue;
-
-      // Verify if the answer is correct
-      const isCorrect = await this.verifyAnswer(attempt.question_id, attempt.selected_option_id);
-      
-      attempt.is_correct = isCorrect;
-
-      // Get question to calculate marks
-      const question = await this.questionModel.findById(attempt.question_id).lean();
-      
-      if (isCorrect) {
-        correctCount++;
-        totalMarksScored += question?.marks?.positive || 1;
-      } else {
-        incorrectCount++;
-        totalMarksScored -= question?.marks?.negative || 0.25;
+      let marksScored = 0;
+      for (const answer of dto.answers) {
+        if (!answer.selectedOption) continue;
+        const question = await this.questionModel.findById(answer.questionId).lean();
+        if (answer.isCorrect) {
+          marksScored += question?.marks?.positive || 1;
+        } else {
+          marksScored -= question?.marks?.negative || 0.25;
+        }
       }
 
-      await attempt.save();
+      const testSession = new this.testSessionModel({
+        userId: new Types.ObjectId(userId),
+        testType: 'paper',
+        testId: new Types.ObjectId(dto.testId),
+        startedAt: new Date(),
+        submittedAt: new Date(),
+        timeTakenSeconds: timeTaken,
+        status: 'submitted',
+        totalAttempted,
+        correctAnswers: correctCount,
+        incorrectAnswers: incorrectCount,
+        unanswered,
+        totalMarksScored: Math.max(0, marksScored),
+        totalMarksPossible: totalMarks,
+        accuracyPercentage: Math.round(accuracy * 100) / 100,
+      });
+
+      const savedSession = await testSession.save({ session });
+
+      // Insert question attempts
+      const attempts = dto.answers.map(answer => ({
+        session_id: savedSession._id,
+        question_id: new Types.ObjectId(answer.questionId),
+        selected_option_id: answer.selectedOption,
+        is_correct: answer.isCorrect,
+        time_spent_seconds: answer.timeTaken,
+        marked_for_review: false,
+        attempt_number: 1,
+        attempted_at: new Date(),
+      }));
+
+      await this.questionAttemptModel.insertMany(attempts, { session });
+
+      await session.commitTransaction();
+      return savedSession;
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
-
-    const totalAttempted = attempts.filter((a) => a.selected_option_id).length;
-    const unanswered = attempts.length - totalAttempted;
-    const accuracy = totalAttempted > 0 ? (correctCount / totalAttempted) * 100 : 0;
-
-    // Update session
-    session.status = 'submitted';
-    session.submittedAt = new Date();
-    session.timeTakenSeconds = Math.floor((new Date().getTime() - session.startedAt.getTime()) / 1000);
-    session.totalAttempted = totalAttempted;
-    session.correctAnswers = correctCount;
-    session.incorrectAnswers = incorrectCount;
-    session.unanswered = unanswered;
-    session.totalMarksScored = Math.max(0, totalMarksScored);
-    session.accuracyPercentage = Math.round(accuracy * 100) / 100;
-
-    await session.save();
-    await this.cacheManager.del(`session:${sessionId}`);
-
-    return session;
-  }
-
-  // Helper method to verify answer - implement based on your Question schema
-  private async verifyAnswer(questionId: Types.ObjectId, selectedOptionId: string): Promise<boolean> {
-    const question = await this.questionModel.findById(questionId).lean();
-    if (!question) return false;
-    
-    // Check single correct option
-    if (question.correctOption) {
-      return question.correctOption === selectedOptionId;
-    }
-    
-    // Check multiple correct options
-    if (question.multiCorrectOptions?.length) {
-      return question.multiCorrectOptions.includes(selectedOptionId);
-    }
-    
-    return false;
-  }
-
-  async getSessionDetails(sessionId: string) {
-    const cacheKey = `session:${sessionId}`;
-    const cached = await this.cacheManager.get(cacheKey);
-    if (cached) return cached;
-
-    const session = await this.testSessionModel.findById(sessionId).lean().exec();
-
-    if (!session) {
-      throw new NotFoundException('Session not found');
-    }
-
-    const attempts = await this.questionAttemptModel
-      .find({ session_id: new Types.ObjectId(sessionId) })
-      .lean()
-      .exec();
-
-    const result = {
-      ...session,
-      attempts,
-    };
-
-    await this.cacheManager.set(cacheKey, result, 300000);
-    return result;
   }
 
   // ==================== RANDOM QUESTIONS ====================

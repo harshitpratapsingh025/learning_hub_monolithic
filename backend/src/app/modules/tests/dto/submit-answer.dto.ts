@@ -1,7 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsBoolean, IsInt } from 'class-validator';
+import { IsString, IsNotEmpty, IsBoolean, IsInt, IsArray, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
-export class SubmitAnswerDto {
+export class QuestionAnswerDto {
   @ApiProperty({ example: '507f1f77bcf86cd799439011' })
   @IsString()
   @IsNotEmpty()
@@ -9,16 +10,32 @@ export class SubmitAnswerDto {
 
   @ApiPropertyOptional({ example: 'A' })
   @IsString()
-  @IsOptional()
-  selectedOptionId?: string;
+  @IsNotEmpty()
+  selectedOption: string;
 
-  @ApiPropertyOptional({ example: false })
+  @ApiProperty({ example: true })
   @IsBoolean()
-  @IsOptional()
-  markedForReview?: boolean;
+  isCorrect: boolean;
 
-  @ApiPropertyOptional({ example: 45 })
+  @ApiProperty({ example: 45 })
   @IsInt()
-  @IsOptional()
-  timeSpentSeconds?: number;
+  timeTaken: number;
+}
+
+export class SubmitTestDto {
+  @ApiProperty({ example: '507f1f77bcf86cd799439011' })
+  @IsString()
+  @IsNotEmpty()
+  testId: string;
+
+  @ApiProperty({ example: '507f1f77bcf86cd799439011' })
+  @IsString()
+  @IsNotEmpty()
+  examId: string;
+
+  @ApiProperty({ type: [QuestionAnswerDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => QuestionAnswerDto)
+  answers: QuestionAnswerDto[];
 }

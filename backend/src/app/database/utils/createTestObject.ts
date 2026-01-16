@@ -120,7 +120,7 @@ function transformCutoffs(cutoffs) {
 function transformExamData(rawData) {
   return {
     // Basic Information
-    id: rawData._id,
+    id: rawData.courseid,
     title: rawData.title,
     code: rawData.code || null,
 

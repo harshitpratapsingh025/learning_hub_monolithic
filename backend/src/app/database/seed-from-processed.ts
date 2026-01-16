@@ -35,7 +35,7 @@ async function seedFromProcessedData() {
     console.log('📝 Creating exam...');
     const examData = processedData.exam;
     
-    const existingExam = await examModel.findOne({ code: examData.code || 'SSC_GD' });
+    const existingExam = await examModel.findOne({ shortName: examData.shortName });
     let exam;
     
     if (!existingExam) {
@@ -100,13 +100,15 @@ async function seedFromProcessedData() {
         }
       }
       
-      if (questionData.chapterId && questionData.chapterName && questionSectionId) {
+      // Create chapter if it has chapterId and chapterName
+      if (questionData.chapterId && questionData.chapterName) {
         const chapterKey = questionData.chapterId;
         if (!uniqueChapters.has(chapterKey)) {
           uniqueChapters.set(chapterKey, {
             id: questionData.chapterId,
             name: questionData.chapterName,
-            sectionId: questionSectionId
+            sectionId: questionSectionId,
+            subjectId: questionData.subjectId
           });
         }
       }
@@ -122,22 +124,30 @@ async function seedFromProcessedData() {
     
     // Create chapters
     for (const chapterData of uniqueChapters.values()) {
-      const subjectId = subjectMap.get(chapterData.sectionId);
+      let subjectId = subjectMap.get(chapterData.sectionId);
+      if (!subjectId && chapterData.subjectId) {
+        subjectId = new Types.ObjectId(chapterData.subjectId);
+      }
+      
+      if (!subjectId) {
+        console.log(`⚠️ Skipping chapter ${chapterData.name} - no subjectId found`);
+        continue;
+      }
       
       const existingChapter = await chapterModel.findOne({
-        _id: new Types.ObjectId(chapterData.id)
+        name: chapterData.name,
+        subjectId: subjectId
       });
       
-      if (!existingChapter && subjectId) {
+      if (!existingChapter) {
         const chapter = await chapterModel.create({
-          _id: new Types.ObjectId(chapterData.id),
           subjectId: subjectId,
           name: chapterData.name,
           isActive: true
         });
         chapterMap.set(chapterData.id, chapter._id);
         chaptersCreated++;
-      } else if (existingChapter) {
+      } else {
         chapterMap.set(chapterData.id, existingChapter._id);
       }
     }
@@ -146,26 +156,38 @@ async function seedFromProcessedData() {
     for (const topicData of uniqueTopics.values()) {
       const chapterId = chapterMap.get(topicData.chapterId);
       
+      if (!chapterId) continue;
+      
       const existingTopic = await topicModel.findOne({
-        _id: new Types.ObjectId(topicData.id)
+        name: topicData.name,
+        chapterId: chapterId
       });
       
-      if (!existingTopic && chapterId) {
+      if (!existingTopic) {
         const topic = await topicModel.create({
-          _id: new Types.ObjectId(topicData.id),
           chapterId: chapterId,
           name: topicData.name,
           isActive: true
         });
         topicMap.set(topicData.id, topic._id);
         topicsCreated++;
-      } else if (existingTopic) {
+      } else {
         topicMap.set(topicData.id, existingTopic._id);
       }
     }
     
     console.log(`✅ ${chaptersCreated} chapters created`);
     console.log(`✅ ${topicsCreated} topics created`);
+
+    // Update processedData.questions with new chapter/topic IDs
+    for (const questionData of processedData.questions) {
+      if (questionData.chapterId && chapterMap.has(questionData.chapterId)) {
+        questionData.chapterId = chapterMap.get(questionData.chapterId);
+      }
+      if (questionData.topicId && topicMap.has(questionData.topicId)) {
+        questionData.topicId = topicMap.get(questionData.topicId);
+      }
+    }
 
     // 4. Create Questions
     console.log('❓ Creating questions...');
@@ -187,15 +209,12 @@ async function seedFromProcessedData() {
         const subjectId = subjectMap.get(sectionId);
         
         if (subjectId) {
-          const chapterId = chapterMap.get(questionData.chapterId);
-          const topicId = topicMap.get(questionData.topicId);
-          
           await questionModel.create({
             _id: new Types.ObjectId(questionData._id),
             examId: exam._id,
             subjectId: subjectId,
-            chapterId: chapterId,
-            topicId: topicId,
+            chapterId: questionData.chapterId,
+            topicId: questionData.topicId,
             type: questionData.type,
             marks: questionData.marks,
             content: questionData.content,

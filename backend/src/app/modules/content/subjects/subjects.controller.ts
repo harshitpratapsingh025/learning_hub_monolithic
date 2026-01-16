@@ -84,6 +84,14 @@ export class SubjectsController {
     await this.subjectsService.remove(id);
   }
 
+  @Delete(':subjectId/chapters-topics')
+  @RequirePermissions('subjects:delete')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete all chapters and topics by subject ID' })
+  async removeChaptersAndTopics(@Param('subjectId') subjectId: string) {
+    await this.subjectsService.removeChaptersAndTopicsBySubject(subjectId);
+  }
+
   // Chapter routes
   @Post('chapters')
   @RequirePermissions('subjects:create')

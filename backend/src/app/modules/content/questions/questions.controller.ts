@@ -94,4 +94,12 @@ export class QuestionsController {
   async remove(@Param('id') id: string) {
     await this.questionsService.remove(id);
   }
+
+  @Delete('subject/:subjectId')
+  @RequirePermissions('questions:delete')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete all questions by subject ID' })
+  async removeBySubject(@Param('subjectId') subjectId: string) {
+    await this.questionsService.removeBySubject(subjectId);
+  }
 }

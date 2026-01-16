@@ -242,6 +242,24 @@ export class SubjectsService {
     this.logger.log(`Subject deleted: ${id}`);
   }
 
+  async removeChaptersAndTopicsBySubject(subjectId: string): Promise<void> {
+    if (!Types.ObjectId.isValid(subjectId)) {
+      throw new BadRequestException('Invalid subject ID');
+    }
+
+    const chapters = await this.chapterModel.find({ subjectId: new Types.ObjectId(subjectId) }).lean();
+    const chapterIds = chapters.map(c => c._id);
+
+    const [chaptersDeleted, topicsDeleted] = await Promise.all([
+      this.chapterModel.deleteMany({ subjectId: new Types.ObjectId(subjectId) }),
+      this.topicModel.deleteMany({ chapterId: { $in: chapterIds } })
+    ]);
+
+    await this.cacheService.delete(`${this.CACHE_PREFIX}${subjectId}`);
+
+    this.logger.log(`Deleted ${chaptersDeleted.deletedCount} chapters and ${topicsDeleted.deletedCount} topics for subject: ${subjectId}`);
+  }
+
   private transformSubject(subject: any): Subject {
     return {
       ...subject,
