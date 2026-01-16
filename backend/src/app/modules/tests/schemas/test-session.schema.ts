@@ -18,6 +18,9 @@ export class TestSession {
   @Prop({ required: true, type: Types.ObjectId, index: true })
   testId: Types.ObjectId;
 
+  @Prop({ required: true })
+  testTitle: string;
+
   @Prop({ required: true, type: Date, default: Date.now })
   startedAt: Date;
 
@@ -26,6 +29,9 @@ export class TestSession {
 
   @Prop({ min: 0 })
   timeTakenSeconds?: number;
+
+  @Prop({ min: 0 })
+  totalDurationMinutes?: number;
 
   @Prop({ enum: ['in_progress', 'submitted', 'abandoned'], default: 'in_progress', index: true })
   status: string;

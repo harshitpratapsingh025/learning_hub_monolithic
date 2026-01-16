@@ -49,8 +49,8 @@ export class TestController {
   @Get('papers')
   @ApiOperation({ summary: 'Get all papers with filters' })
   @ApiResponse({ status: 200, description: 'Papers retrieved successfully' })
-  async getPapers(@Query() query: QueryTestDto) {
-    return this.testService.getPapers(query);
+  async getPapers(@Request() req, @Query() query: QueryTestDto) {
+    return this.testService.getPapers(req.user.id, query);
   }
 
   @Get('papers/:id')
@@ -88,7 +88,7 @@ export class TestController {
   @ApiOperation({ summary: 'Submit test with answers' })
   @ApiResponse({ status: 201, description: 'Test submitted successfully' })
   async submitTest(@Request() req, @Body() dto: SubmitTestDto) {
-    return this.testService.submitTest(req.user.userId, dto);
+    return this.testService.submitTest(req.user.id, dto);
   }
 
 
@@ -97,11 +97,25 @@ export class TestController {
   @ApiParam({ name: 'subjectId', description: 'Subject ID (MongoDB ObjectId)' })
   @ApiResponse({ status: 200, description: 'Random test generated successfully' })
   async generateRandomTest(
+    @Request() req,
     @Param('subjectId') subjectId: string,
     @Query('examId') examId: string,
     @Query('chapterId') chapterId?: string,
     @Query('count') count = '10',
   ) {
     return this.testService.generateRandomTest(subjectId, examId, Number(count), chapterId);
+  }
+
+  @Get('submitted/:examId')
+  @ApiOperation({ summary: 'Get submitted tests by exam ID' })
+  @ApiParam({ name: 'examId', description: 'Exam ID (MongoDB ObjectId)' })
+  @ApiResponse({ status: 200, description: 'Submitted tests retrieved successfully' })
+  async getSubmittedTestsByExam(
+    @Request() req,
+    @Param('examId') examId: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ) {
+    return this.testService.getSubmittedTestsByExam(req.user.id, examId, Number(page), Number(limit));
   }
 }

@@ -90,8 +90,8 @@ export class TestService {
     }
   }
 
-  async getPapers(query: QueryTestDto) {
-    const cacheKey = `papers:${JSON.stringify(query)}`;
+  async getPapers(userId: string, query: QueryTestDto) {
+    const cacheKey = `papers:${userId}:${JSON.stringify(query)}`;
     const cached = await this.cacheManager.get(cacheKey);
     if (cached) return cached;
 
@@ -102,7 +102,7 @@ export class TestService {
     if (examId) filter.examId = new Types.ObjectId(examId);
     if (isActive !== undefined) filter.isActive = isActive;
 
-    const [items, total] = await Promise.all([
+    const [items, total, completedTests] = await Promise.all([
       this.paperModel
         .find(filter)
         .sort({ year: -1, createdAt: -1 })
@@ -111,10 +111,21 @@ export class TestService {
         .lean()
         .exec(),
       this.paperModel.countDocuments(filter),
+      this.testSessionModel
+        .find({ userId: new Types.ObjectId(userId), status: 'submitted' })
+        .distinct('testId')
+        .exec()
     ]);
 
+    const completedTestIds = new Set(completedTests.map(id => id.toString()));
+
+    const itemsWithStatus = items.map(item => ({
+      ...item,
+      status: completedTestIds.has(item._id.toString()) ? 'completed' : 'not_attempted'
+    }));
+
     const result = {
-      items,
+      items: itemsWithStatus,
       meta: {
         total,
         page,
@@ -123,7 +134,7 @@ export class TestService {
       },
     };
 
-    await this.cacheManager.set(cacheKey, result, 300000); // 5 minutes
+    await this.cacheManager.set(cacheKey, result, 300000);
     return result;
   }
 
@@ -229,9 +240,11 @@ export class TestService {
         userId: new Types.ObjectId(userId),
         testType: 'paper',
         testId: new Types.ObjectId(dto.testId),
+        testTitle: dto.testTitle,
         startedAt: new Date(),
         submittedAt: new Date(),
         timeTakenSeconds: timeTaken,
+        totalDurationMinutes: paper.durationMinutes,
         status: 'submitted',
         totalAttempted,
         correctAnswers: correctCount,
@@ -329,6 +342,65 @@ export class TestService {
           }))
         }
       ]
+    };
+  }
+
+
+  async getSubmittedTestsByExam(userId: string, examId: string, page: number, limit: number) {
+    if (!Types.ObjectId.isValid(examId)) {
+      throw new BadRequestException('Invalid exam ID');
+    }
+
+    const skip = (page - 1) * limit;
+
+    const sessions = await this.testSessionModel.aggregate([
+      {
+        $match: {
+          userId: new Types.ObjectId(userId),
+          status: 'submitted'
+        }
+      },
+      {
+        $lookup: {
+          from: 'papers',
+          localField: 'testId',
+          foreignField: '_id',
+          as: 'paper'
+        }
+      },
+      { $unwind: '$paper' },
+      {
+        $match: {
+          'paper.examId': new Types.ObjectId(examId)
+        }
+      },
+      { $sort: { submittedAt: -1 } },
+      {
+        $group: {
+          _id: '$testId',
+          session: { $first: '$$ROOT' }
+        }
+      },
+      { $replaceRoot: { newRoot: '$session' } },
+      {
+        $facet: {
+          items: [{ $skip: skip }, { $limit: limit }],
+          total: [{ $count: 'count' }]
+        }
+      }
+    ]);
+
+    const items = sessions[0]?.items || [];
+    const total = sessions[0]?.total[0]?.count || 0;
+
+    return {
+      items,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
     };
   }
 }

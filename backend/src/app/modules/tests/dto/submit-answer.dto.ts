@@ -28,6 +28,11 @@ export class SubmitTestDto {
   @IsNotEmpty()
   testId: string;
 
+  @ApiProperty({ example: 'SSC CGL 2024 Tier-1 Paper' })
+  @IsString()
+  @IsNotEmpty()
+  testTitle: string;
+
   @ApiProperty({ example: '507f1f77bcf86cd799439011' })
   @IsString()
   @IsNotEmpty()
