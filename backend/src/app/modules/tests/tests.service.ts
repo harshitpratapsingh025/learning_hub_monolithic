@@ -95,12 +95,15 @@ export class TestService {
     const cached = await this.cacheManager.get(cacheKey);
     if (cached) return cached;
 
-    const { page = 1, limit = 10, examId, isActive } = query;
+    const { page = 1, limit = 10, examId, isActive, isLive, isMock, isPreviousYear } = query;
     const skip = (page - 1) * limit;
 
     const filter: any = {};
     if (examId) filter.examId = new Types.ObjectId(examId);
     if (isActive !== undefined) filter.isActive = isActive;
+    if (isLive !== undefined) filter.isLive = isLive;
+    if (isMock !== undefined) filter.isMock = isMock;
+    if (isPreviousYear !== undefined) filter.isPreviousYear = isPreviousYear;
 
     const [items, total, completedTests] = await Promise.all([
       this.paperModel

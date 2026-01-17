@@ -253,6 +253,8 @@ async function seedFromProcessedData() {
         code: paperData.code,
         examType: paperData.examType,
         isPreviousYear: paperData.isPreviousYear,
+        isMock: paperData.isMock,
+        isLive: paperData.isLive,
         year: paperData.year,
         shift: paperData.shift,
         course: paperData.course,

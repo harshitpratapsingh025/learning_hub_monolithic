@@ -1,11 +1,10 @@
-
 /**
  * Utility to transform previous year exam data for database storage
  * Keeps only essential fields and English/Hindi language data
  */
 
 // Supported languages
-const SUPPORTED_LANGUAGES = ["en", "hn"];
+const SUPPORTED_LANGUAGES = ['en', 'hn'];
 
 /**
  * Transform question data
@@ -23,13 +22,13 @@ function transformQuestion(question) {
     // Question content in supported languages
     content: {
       en: {
-        question: question.en?.value || "",
+        question: question.en?.value || '',
         options: question.en?.options || [],
         explanation: question.en?.explanation || null,
         comprehension: question.en?.comp || null,
       },
       hn: {
-        question: question.hn?.value || "",
+        question: question.hn?.value || '',
         options: question.hn?.options || [],
         explanation: question.hn?.explanation || null,
         comprehension: question.en?.comp || null,
@@ -125,8 +124,9 @@ function transformExamData(rawData) {
     code: rawData.code || null,
 
     // Exam Metadata
-    examType: rawData.metaCategoryName || "Previous Year Paper",
+    examType: rawData.metaCategoryName || 'Previous Year Paper',
     isPreviousYear: rawData.isPyp || false,
+    isLive: rawData.isLive || false,
 
     // Exam Details
     year: rawData.year || extractYearFromTitle(rawData.title),
@@ -145,7 +145,7 @@ function transformExamData(rawData) {
     hasOptionalSections: rawData.containOptionalSections || false,
 
     // Interface Settings
-    testInterface: rawData.testInterface || "default",
+    testInterface: rawData.testInterface || 'default',
     showCalculator: rawData.showCalculator || false,
 
     // Languages (filtered to en and hn)
@@ -209,7 +209,7 @@ function processExamData(rawData) {
       errors: [],
     };
   } catch (error) {
-    console.error("Error processing exam data:", error);
+    console.error('Error processing exam data:', error);
     return {
       success: false,
       errors: [error.message],
@@ -243,13 +243,13 @@ function transformAnswerKey(questionId, answerData) {
     // Solution in supported languages only
     solution: {
       en: {
-        text: answerData.sol?.en?.value || "",
-        type: answerData.sol?.en?.type || "text",
+        text: answerData.sol?.en?.value || '',
+        type: answerData.sol?.en?.type || 'text',
         videoUrl: answerData.sol?.en?.videoSol || null,
       },
       hn: {
-        text: answerData.sol?.hn?.value || "",
-        type: answerData.sol?.hn?.type || "text",
+        text: answerData.sol?.hn?.value || '',
+        type: answerData.sol?.hn?.type || 'text',
         videoUrl: answerData.sol?.hn?.videoSol || null,
       },
     },
@@ -356,12 +356,12 @@ function generateDatabaseDocument(mergedData) {
   }
 
   const exam = mergedData.data;
-  
+
   // Extract unique subjects, chapters, and topics from question concepts
   const subjectsMap = new Map();
   const chaptersMap = new Map();
   const topicsMap = new Map();
-  
+
   exam.sections.forEach((section) => {
     section.questions.forEach((question) => {
       question.answer?.concepts?.forEach((concept) => {
@@ -373,10 +373,10 @@ function generateDatabaseDocument(mergedData) {
             description: concept.subject.title,
             displayOrder: 1,
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
           });
         }
-        
+
         if (concept.chapter?.id) {
           chaptersMap.set(concept.chapter.id, {
             _id: concept.chapter.id,
@@ -385,10 +385,10 @@ function generateDatabaseDocument(mergedData) {
             description: concept.chapter.title,
             displayOrder: 1,
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
           });
         }
-        
+
         if (concept.topic?.id) {
           topicsMap.set(concept.topic.id, {
             _id: concept.topic.id,
@@ -397,7 +397,7 @@ function generateDatabaseDocument(mergedData) {
             description: concept.topic.title,
             displayOrder: 1,
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
           });
         }
       });
@@ -413,7 +413,7 @@ function generateDatabaseDocument(mergedData) {
       description: `${exam.title} - ${exam.examType}`,
       shortName: exam.course || 'EXAM',
       icon: '📝',
-      isActive: true
+      isActive: true,
     },
 
     // Collection: subjects (from concepts)
@@ -433,6 +433,8 @@ function generateDatabaseDocument(mergedData) {
       code: exam.code,
       examType: exam.examType,
       isPreviousYear: exam.isPreviousYear,
+      isLive: exam.isLive || false,
+      isMock: exam.isMock || !exam.isPreviousYear,
       year: exam.year,
       shift: exam.shift,
       course: exam.course,
@@ -446,7 +448,7 @@ function generateDatabaseDocument(mergedData) {
       supportedLanguages: exam.supportedLanguages,
       instructions: exam.generalInstructions,
       cutoffs: exam.cutoffs,
-      isActive: true
+      isActive: true,
     },
 
     // Collection: sections

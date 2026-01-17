@@ -25,7 +25,13 @@ export class Paper {
   @Prop({ default: true })
   isPreviousYear: boolean;
 
-  @Prop({ required: true, index: true })
+  @Prop({ default: false, index: true })
+  isLive: boolean;
+
+  @Prop({ default: false, index: true })
+  isMock: boolean;
+
+  @Prop({ index: true })
   year: string;
 
   @Prop()

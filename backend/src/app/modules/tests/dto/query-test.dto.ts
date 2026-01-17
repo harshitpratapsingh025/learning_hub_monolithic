@@ -15,14 +15,27 @@ export class QueryTestDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsEnum(['easy', 'medium', 'hard'])
-  difficulty?: 'easy' | 'medium' | 'hard';
+  @IsBoolean()
+  @Type(() => Boolean)
+  isPreviousYear?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
   @Type(() => Boolean)
   isActive?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  isLive?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  isMock?: boolean;
 
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()

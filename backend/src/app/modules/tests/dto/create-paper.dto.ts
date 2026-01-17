@@ -28,6 +28,16 @@ export class CreatePaperDto {
   @IsOptional()
   isPreviousYear?: boolean;
 
+  @ApiPropertyOptional({ example: false })
+  @IsBoolean()
+  @IsOptional()
+  isLive?: boolean;
+
+  @ApiPropertyOptional({ example: false })
+  @IsBoolean()
+  @IsOptional()
+  isMock?: boolean;
+
   @ApiProperty({ example: '2024' })
   @IsString()
   @IsNotEmpty()
