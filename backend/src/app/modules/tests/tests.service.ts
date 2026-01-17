@@ -406,4 +406,51 @@ export class TestService {
       }
     };
   }
+
+  async getTestDetails(userId: string, testId: string) {
+    if (!Types.ObjectId.isValid(testId)) {
+      throw new BadRequestException('Invalid test ID');
+    }
+
+    const sessions = await this.testSessionModel.find({
+      userId: new Types.ObjectId(userId),
+      testId: new Types.ObjectId(testId),
+      status: 'submitted'
+    }).lean();
+
+    if (!sessions || sessions.length === 0) {
+      throw new NotFoundException('Test session not found');
+    }
+
+    const result = [];
+
+    for (const session of sessions) {
+      const attempts = await this.questionAttemptModel.find({
+        session_id: session._id
+      }).lean();
+
+      const questionIds = attempts.map(a => a.question_id);
+      const questions = await this.questionModel.find({
+        _id: { $in: questionIds }
+      }).lean();
+
+      const questionMap = new Map(questions.map(q => [q._id.toString(), q]));
+
+      result.push({
+        testSession: session,
+        questions: attempts.map(attempt => ({
+          ...questionMap.get(attempt.question_id.toString()),
+          questionAttempt: {
+            selectedOption: attempt.selected_option_id,
+            isCorrect: attempt.is_correct,
+            timeSpent: attempt.time_spent_seconds,
+            markedForReview: attempt.marked_for_review,
+            attemptedAt: attempt.attempted_at
+          }
+        }))
+      });
+    }
+
+    return result;
+  }
 }

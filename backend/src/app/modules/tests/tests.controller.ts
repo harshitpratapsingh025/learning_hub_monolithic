@@ -118,4 +118,15 @@ export class TestController {
   ) {
     return this.testService.getSubmittedTestsByExam(req.user.id, examId, Number(page), Number(limit));
   }
+
+  @Get('details/:testId')
+  @ApiOperation({ summary: 'Get test details with question attempts' })
+  @ApiParam({ name: 'testId', description: 'Test ID (MongoDB ObjectId)' })
+  @ApiResponse({ status: 200, description: 'Test details retrieved successfully' })
+  async getTestDetails(
+    @Request() req,
+    @Param('testId') testId: string,
+  ) {
+    return this.testService.getTestDetails(req.user.id, testId);
+  }
 }
